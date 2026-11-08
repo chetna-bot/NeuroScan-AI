@@ -1,0 +1,6 @@
+{
+  "name": "NeuroScan AI – Brain MRI Analysis Platform",
+  "description": "Educational and research platform for brain MRI classification, U-Net lesion segmentation, and Grad-CAM visual interpretability.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

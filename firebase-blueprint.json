@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile information",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "Brain MRI analysis record containing classification, segmentation, and explainability results",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "filename": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "predicted_class": { "type": "string" },
+        "confidence": { "type": "number" },
+        "probabilities": { "type": "object" },
+        "segmentation_mask": { "type": "string" },
+        "gradcam_image": { "type": "string" },
+        "originalImage": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "filename", "timestamp", "predicted_class", "confidence"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profile information"
+    },
+    "/users/{userId}/analyses/{analysisId}": {
+      "schema": "Analysis",
+      "description": "Individual brain MRI analysis records belonging to a user"
+    }
+  }
+}
