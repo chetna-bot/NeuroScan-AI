@@ -22,6 +22,12 @@ import {
   Compass,
   FileSearch,
   BookOpen,
+  Brain,
+  Dna,
+  Microscope,
+  Activity,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 import { generateMriPdfReport } from '../services/pdfReport';
 import { getMriDetailedAnalysis } from '../services/mriDiagnosisExplainer';
@@ -40,7 +46,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   currentUser,
 }) => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [detailTab, setDetailTab] = useState<'pathology' | 'anatomy' | 'radiology' | 'workup'>('pathology');
+  const [detailTab, setDetailTab] = useState<'overview' | 'pathology' | 'anatomy' | 'radiology' | 'workup'>('overview');
 
   // Segmentation visualizer view mode: 'side-by-side' | 'slider' | 'overlay'
   const [segMode, setSegMode] = useState<'side-by-side' | 'slider' | 'overlay'>('side-by-side');
@@ -610,103 +616,266 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
       {/* 5. CARD D: In-Depth Diagnostic Analysis & MRI Anatomical Details */}
       <div className="bg-white rounded-lg border border-slate-200 p-6 md:p-8 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded bg-slate-900 flex items-center justify-center text-teal-400">
-              <FileSearch className="w-4 h-4" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-md bg-slate-900 flex items-center justify-center text-teal-400 shrink-0 shadow-xs">
+              <FileSearch className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
-                D. In-Depth Diagnostic Analysis & MRI Anatomical Findings
-              </h2>
-              <p className="text-xs text-slate-500 font-mono">
-                Class Pathology Profiling · Tissue Structures · Radiomics Breakdown
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                  D. In-Depth Diagnostic Analysis & MRI Anatomical Findings
+                </h2>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 font-semibold">
+                  WHO CNS5 Aligned
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-mono mt-0.5">
+                Clinical Pathology Profiling · Tissue Structural Markers · Multi-Parametric MRI Matrix
               </p>
             </div>
           </div>
 
           {/* Sub-section Switcher */}
-          <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded border border-slate-200 text-xs">
+          <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-md border border-slate-200 text-xs">
             <button
-              onClick={() => setDetailTab('pathology')}
-              className={`px-3 py-1 font-medium rounded transition-colors whitespace-nowrap ${
-                detailTab === 'pathology'
-                  ? 'bg-white text-slate-900 shadow-xs'
+              onClick={() => setDetailTab('overview')}
+              className={`px-3 py-1.5 font-medium rounded transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                detailTab === 'overview'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Class Pathology
+              <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+              Executive Overview
+            </button>
+            <button
+              onClick={() => setDetailTab('pathology')}
+              className={`px-3 py-1.5 font-medium rounded transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                detailTab === 'pathology'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Dna className="w-3.5 h-3.5 text-indigo-600" />
+              Class Pathology & Genetics
             </button>
             <button
               onClick={() => setDetailTab('anatomy')}
-              className={`px-3 py-1 font-medium rounded transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 font-medium rounded transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 detailTab === 'anatomy'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Anatomical Landmarks
+              <Compass className="w-3.5 h-3.5 text-cyan-600" />
+              Anatomical Landmarks & Risk
             </button>
             <button
               onClick={() => setDetailTab('radiology')}
-              className={`px-3 py-1 font-medium rounded transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 font-medium rounded transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 detailTab === 'radiology'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Sequence & Signals
+              <Activity className="w-3.5 h-3.5 text-violet-600" />
+              MRI Sequence Matrix
             </button>
             <button
               onClick={() => setDetailTab('workup')}
-              className={`px-3 py-1 font-medium rounded transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 font-medium rounded transition-all whitespace-nowrap flex items-center gap-1.5 ${
                 detailTab === 'workup'
-                  ? 'bg-white text-slate-900 shadow-xs'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Clinical Workup
+              <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
+              Clinical Roadmap & Workup
             </button>
           </div>
         </div>
 
-        {/* Tab 1: Pathology Profile */}
+        {/* TAB 1: EXECUTIVE OVERVIEW */}
+        {detailTab === 'overview' && (
+          <div className="space-y-6 text-xs text-slate-600 leading-relaxed">
+            {/* Primary Plain-Language Clinical Summary Card */}
+            <div className="p-5 bg-gradient-to-br from-teal-50/70 via-slate-50 to-white rounded-lg border border-teal-200/80 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-teal-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-teal-600 text-white flex items-center justify-center shrink-0">
+                    <Info className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                      Plain-Language Diagnostic Interpretation
+                    </h3>
+                    <span className="text-[11px] text-teal-800 font-medium">
+                      Core findings summarized for clinicians, researchers, and patients
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] font-mono px-2.5 py-1 rounded-full font-semibold border ${
+                      mriDetails.quantitativeRadiomics.urgencyLevel.includes('Emergency')
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : mriDetails.quantitativeRadiomics.urgencyLevel.includes('Urgent')
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    ● {mriDetails.quantitativeRadiomics.urgencyLevel}
+                  </span>
+                </div>
+              </div>
+              <p className="text-slate-700 text-xs sm:text-[13px] leading-relaxed pt-1">
+                {mriDetails.plainExplanation}
+              </p>
+            </div>
+
+            {/* Rapid Diagnostic Snapshot Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-[11px]">
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
+                  Classification Match
+                </span>
+                <span className="text-slate-900 font-bold text-sm block">
+                  {mriDetails.quantitativeRadiomics.topClass}
+                </span>
+                <span className="text-teal-700 font-semibold">
+                  {mriDetails.quantitativeRadiomics.confidencePct} Probability
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
+                  Tissue Compartment
+                </span>
+                <span className="text-slate-900 font-semibold text-xs block truncate">
+                  {mriDetails.pathology.categoryType}
+                </span>
+                <span className="text-slate-500 text-[10px]">
+                  {mriDetails.quantitativeRadiomics.marginSharpness}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
+                  Midline Shift Vector
+                </span>
+                <span className="text-slate-900 font-semibold text-xs block">
+                  {mriDetails.tissueMetrics.midlineAssessment.includes('zero')
+                    ? '0.0 mm (Strict Midline)'
+                    : 'Sub-Centimeter Deviation'}
+                </span>
+                <span className="text-slate-500 text-[10px]">
+                  {mriDetails.tissueMetrics.herniationRisk}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
+                  Secondary Differential
+                </span>
+                <span className="text-slate-800 font-medium text-xs block">
+                  {mriDetails.quantitativeRadiomics.secondaryClass}
+                </span>
+                <span className="text-slate-500 text-[10px]">
+                  {mriDetails.quantitativeRadiomics.secondaryPct} Alternative Confidence
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Biomarker & Anatomical Pearls */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-lg border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-slate-900 text-xs">
+                  <Dna className="w-4 h-4 text-indigo-600" />
+                  <span>Key Molecular Biomarkers Evaluated</span>
+                </div>
+                <ul className="space-y-1.5 list-disc pl-4 text-slate-600 text-[11px]">
+                  {mriDetails.pathology.molecularBiomarkers.slice(0, 3).map((bio, idx) => (
+                    <li key={idx}>{bio}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 font-semibold text-slate-900 text-xs">
+                  <Brain className="w-4 h-4 text-cyan-600" />
+                  <span>Eloquent Brain Areas at Risk</span>
+                </div>
+                <ul className="space-y-1.5 list-disc pl-4 text-slate-600 text-[11px]">
+                  {mriDetails.pathology.anatomicalRiskZones.slice(0, 3).map((zone, idx) => (
+                    <li key={idx}>{zone}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: CLASS PATHOLOGY & GENETICS */}
         {detailTab === 'pathology' && (
           <div className="space-y-6 text-xs text-slate-600 leading-relaxed">
-            <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2">
+            {/* Header Banner */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <span className="font-semibold text-slate-900 text-sm">
+                <span className="font-bold text-slate-900 text-sm">
                   {mriDetails.pathology.title}
                 </span>
-                <span className="font-mono text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 w-fit">
+                <span className="font-mono text-[11px] text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded border border-teal-200 w-fit">
                   {mriDetails.pathology.categoryType}
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 font-mono text-[11px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200/60 font-mono text-[11px]">
                 <div>
-                  <span className="text-slate-400 block">Grading Spectrum:</span>
-                  <span className="text-slate-800 font-medium">{mriDetails.pathology.whoGrading}</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">WHO CNS5 Grading Criteria:</span>
+                  <span className="text-slate-800 font-medium">{mriDetails.pathology.whoGradingDetailed}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Cellular Origin:</span>
+                  <span className="text-slate-400 block text-[10px] uppercase">Cellular Origin:</span>
                   <span className="text-slate-800 font-medium">{mriDetails.pathology.originTissue}</span>
                 </div>
               </div>
             </div>
 
+            {/* Pathophysiology & Disease Mechanism */}
             <div className="space-y-2">
-              <h3 className="font-semibold text-slate-900 text-xs uppercase tracking-wider font-mono">
-                Pathophysiology & Disease Mechanism
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Microscope className="w-3.5 h-3.5 text-teal-600" />
+                Pathophysiology & Histomolecular Progression
               </h3>
-              <p className="text-slate-700 bg-white p-4 rounded border border-slate-200">
+              <p className="text-slate-700 bg-white p-4 rounded-lg border border-slate-200 leading-relaxed">
                 {mriDetails.pathology.pathophysiology}
               </p>
             </div>
 
+            {/* Molecular Genetics Panel */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+              <h4 className="font-bold text-slate-900 text-xs font-mono uppercase flex items-center gap-1.5">
+                <Dna className="w-3.5 h-3.5 text-indigo-600" />
+                Integrated Molecular & Genetic Biomarker Panel (WHO CNS5)
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Modern neuro-oncology requires molecular characterization beyond histology alone:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                {mriDetails.pathology.molecularBiomarkers.map((bio, idx) => (
+                  <div key={idx} className="p-2.5 bg-white rounded border border-slate-200 flex items-start gap-2">
+                    <span className="text-indigo-600 font-bold shrink-0">#</span>
+                    <span className="text-slate-800">{bio}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Anatomical Compartments & Clinical Symptoms */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2">
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
                 <h4 className="font-semibold text-slate-900 text-xs">
-                  Typical Anatomical Compartments
+                  Typical Anatomical Predilections
                 </h4>
                 <ul className="space-y-1.5 list-disc pl-4 text-slate-600 text-[11px]">
                   {mriDetails.pathology.typicalLocations.map((loc, idx) => (
@@ -715,9 +884,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </ul>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2">
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
                 <h4 className="font-semibold text-slate-900 text-xs">
-                  Clinical Presentation & Symptoms
+                  Clinical Presentation & Neurological Deficits
                 </h4>
                 <ul className="space-y-1.5 list-disc pl-4 text-slate-600 text-[11px]">
                   {mriDetails.pathology.clinicalPresentation.map((sym, idx) => (
@@ -726,38 +895,53 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </ul>
               </div>
             </div>
+
+            {/* Acute Pharmacotherapy & Support */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+              <h4 className="font-semibold text-slate-900 text-xs">
+                Standard Pharmacological & Supportive Regimens
+              </h4>
+              <ul className="space-y-1.5 list-disc pl-4 text-slate-700 text-[11px]">
+                {mriDetails.pathology.pharmacotherapyAndSupport.map((drug, idx) => (
+                  <li key={idx}>{drug}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 
-        {/* Tab 2: Anatomical Landmarks & Tissue Breakdown */}
+        {/* TAB 3: ANATOMICAL LANDMARKS & TISSUE BREAKDOWN */}
         {detailTab === 'anatomy' && (
           <div className="space-y-6 text-xs text-slate-600 leading-relaxed">
-            <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-3">
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-900 text-xs uppercase tracking-wider font-mono">
-                  Identified Scan Acquisition Geometry
+                <span className="font-bold text-slate-900 text-xs uppercase tracking-wider font-mono">
+                  Slice Acquisition Orientation
                 </span>
-                <span className="font-mono text-teal-700 text-[11px]">
+                <span className="font-mono text-teal-700 text-[11px] font-semibold">
                   {mriDetails.imageOrientation}
                 </span>
               </div>
               <p className="text-slate-600 text-[11px]">
-                The uploaded slice represents an axial transverse neuroimaging cut through the cerebral hemispheres,
-                permitting bilateral symmetric inspection of cortical mantles, subcortical tracts, and ventricular cavities.
+                The uploaded neuroimaging study represents an axial transverse neuroimaging cut through the cerebral hemispheres,
+                permitting bilateral symmetric inspection of cortical mantles, subcortical tracts, basal cisterns, and ventricular cavities.
               </p>
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-slate-900 text-xs uppercase tracking-wider font-mono">
-                Observable Anatomical Landmarks in This Slice
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-teal-600" />
+                Observable Anatomical Structures in This Section
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {mriDetails.anatomicalLandmarks.map((landmark, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-white rounded border border-slate-200 flex items-start gap-2.5"
+                    className="p-3 bg-white rounded-lg border border-slate-200 flex items-start gap-2.5 shadow-2xs"
                   >
-                    <Compass className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <div className="w-5 h-5 rounded bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[10px] font-mono font-bold">{idx + 1}</span>
+                    </div>
                     <span className="text-slate-800 text-[11px] font-medium">{landmark}</span>
                   </div>
                 ))}
@@ -765,11 +949,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-slate-900 text-xs uppercase tracking-wider font-mono">
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider font-mono">
                 Structural & Compartment Assessment Matrix
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                   <span className="font-semibold text-slate-900 text-[11px] block">
                     Parenchymal Integrity
                   </span>
@@ -778,164 +962,209 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                   <span className="font-semibold text-slate-900 text-[11px] block">
-                    Ventricular Symmetry & CSF
+                    Ventricular Symmetry & CSF Pulsatility
                   </span>
                   <p className="text-[11px] text-slate-600">
                     {mriDetails.tissueMetrics.ventricularSymmetry}
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                   <span className="font-semibold text-slate-900 text-[11px] block">
-                    Midline Vector & Mass Shift
+                    Midline Vector & Mass Displacement
                   </span>
                   <p className="text-[11px] text-slate-600">
                     {mriDetails.tissueMetrics.midlineAssessment}
                   </p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                   <span className="font-semibold text-slate-900 text-[11px] block">
-                    U-Net Boundary & Edema Margin
+                    U-Net Segmentation & Perilesional Boundary
                   </span>
                   <p className="text-[11px] text-slate-600">
                     {mriDetails.tissueMetrics.edemaAssessment}
                   </p>
                 </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1 sm:col-span-2">
+                  <span className="font-semibold text-slate-900 text-[11px] block">
+                    Herniation & Intracranial Pressure (ICP) Assessment
+                  </span>
+                  <p className="text-[11px] text-slate-600">
+                    {mriDetails.tissueMetrics.herniationRisk}
+                  </p>
+                </div>
               </div>
+            </div>
+
+            {/* Eloquent Cortex Proximity Card */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+              <h4 className="font-semibold text-slate-900 text-xs">
+                Eloquent Cortex & Critical Functional Pathways
+              </h4>
+              <ul className="space-y-1.5 list-disc pl-4 text-slate-600 text-[11px]">
+                {mriDetails.pathology.anatomicalRiskZones.map((zone, idx) => (
+                  <li key={idx}>{zone}</li>
+                ))}
+              </ul>
             </div>
           </div>
         )}
 
-        {/* Tab 3: Sequence & Signals */}
+        {/* TAB 4: MRI SEQUENCES & SIGNAL MATRIX */}
         {detailTab === 'radiology' && (
           <div className="space-y-6 text-xs text-slate-600 leading-relaxed">
             <div className="space-y-2">
-              <h3 className="font-semibold text-slate-900 text-xs uppercase tracking-wider font-mono">
-                Multi-Sequence Signal Intensity Profile
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border border-slate-200 rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider font-mono">
+                  Multi-Parametric MRI Sequence Profile
+                </h3>
+                <span className="text-[11px] font-mono text-slate-500">
+                  Standard Neuroimaging Protocols (T1, T2, FLAIR, DWI, MRS, PWI)
+                </span>
+              </div>
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left">
                   <thead className="bg-slate-50 font-mono text-[11px] text-slate-500 uppercase border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-2.5">Sequence Modality</th>
-                      <th className="px-4 py-2.5">Expected Characteristic Signal</th>
+                      <th className="px-3.5 py-2.5">Modality & Acronym</th>
+                      <th className="px-3.5 py-2.5">Signal Behavior</th>
+                      <th className="px-3.5 py-2.5">Characteristic Appearance</th>
+                      <th className="px-3.5 py-2.5 hidden md:table-cell">Clinical Significance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-[11px]">
-                    <tr>
-                      <td className="px-4 py-2.5 font-medium text-slate-900 font-mono">
-                        T1-Weighted (T1W)
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {mriDetails.pathology.radiologicalHallmarks.t1Signal}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2.5 font-medium text-slate-900 font-mono">
-                        T2 / FLAIR
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {mriDetails.pathology.radiologicalHallmarks.t2FlairSignal}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2.5 font-medium text-slate-900 font-mono">
-                        T1 Post-Contrast (+Gad)
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {mriDetails.pathology.radiologicalHallmarks.contrastEnhancement}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2.5 font-medium text-slate-900 font-mono">
-                        Lesion Margin Profile
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {mriDetails.pathology.radiologicalHallmarks.margins}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2.5 font-medium text-slate-900 font-mono">
-                        Mass Effect Dynamics
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-700">
-                        {mriDetails.pathology.radiologicalHallmarks.massEffect}
-                      </td>
-                    </tr>
+                    {mriDetails.sequenceMatrix.map((seq, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="px-3.5 py-2.5 font-medium text-slate-900 font-mono">
+                          <div>{seq.modality}</div>
+                          <span className="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">
+                            {seq.acronym}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2.5">
+                          <span
+                            className={`font-mono text-[10px] px-2 py-0.5 rounded font-semibold ${
+                              seq.signalBehavior === 'Hyperintense'
+                                ? 'bg-amber-100 text-amber-800'
+                                : seq.signalBehavior === 'Marked Enhancement'
+                                ? 'bg-purple-100 text-purple-800'
+                                : seq.signalBehavior === 'Heterogeneous'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : seq.signalBehavior === 'Hypointense'
+                                ? 'bg-slate-200 text-slate-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {seq.signalBehavior}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-700 max-w-xs">
+                          {seq.visualDescription}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-500 hidden md:table-cell max-w-xs">
+                          {seq.clinicalSignificance}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2">
-              <h4 className="font-semibold text-slate-900 text-xs font-mono uppercase">
-                Quantitative Radiomics Summary
+            {/* Quantitative Radiomics Summary */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+              <h4 className="font-bold text-slate-900 text-xs font-mono uppercase">
+                Quantitative Radiomics Summary & Decision Boundary
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px] font-mono">
                 <div>
-                  <span className="text-slate-400 block">Primary Match:</span>
-                  <span className="text-slate-900 font-bold">{mriDetails.quantitativeRadiomics.topClass} ({mriDetails.quantitativeRadiomics.confidencePct})</span>
+                  <span className="text-slate-400 block text-[10px]">Primary Class:</span>
+                  <span className="text-slate-900 font-bold">
+                    {mriDetails.quantitativeRadiomics.topClass} ({mriDetails.quantitativeRadiomics.confidencePct})
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Secondary Diff:</span>
-                  <span className="text-slate-700">{mriDetails.quantitativeRadiomics.secondaryClass} ({mriDetails.quantitativeRadiomics.secondaryPct})</span>
+                  <span className="text-slate-400 block text-[10px]">Alternative Match:</span>
+                  <span className="text-slate-700">
+                    {mriDetails.quantitativeRadiomics.secondaryClass} ({mriDetails.quantitativeRadiomics.secondaryPct})
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Margin Type:</span>
+                  <span className="text-slate-400 block text-[10px]">Border Character:</span>
                   <span className="text-slate-700">{mriDetails.quantitativeRadiomics.marginSharpness}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Triage Status:</span>
-                  <span className="text-teal-700 font-medium">{mriDetails.quantitativeRadiomics.riskStratification}</span>
+                  <span className="text-slate-400 block text-[10px]">Clinical Triage:</span>
+                  <span className="text-teal-700 font-semibold">{mriDetails.quantitativeRadiomics.riskStratification}</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 4: Differential & Clinical Workup */}
+        {/* TAB 5: DIFFERENTIAL & CLINICAL ROADMAP */}
         {detailTab === 'workup' && (
           <div className="space-y-6 text-xs text-slate-600 leading-relaxed">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2.5">
-                <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs">
-                  <Stethoscope className="w-4 h-4 text-teal-700" />
-                  <h4>Radiological Differential Considerations</h4>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Pathologies sharing overlapping morphological or intensity characteristics that radiologists consider during differential diagnosis:
-                </p>
-                <ul className="space-y-1.5 list-disc pl-4 text-slate-700 text-[11px]">
-                  {mriDetails.pathology.differentialDiagnosis.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
+            {/* Differential Diagnosis Breakdown */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
+                <Stethoscope className="w-4 h-4 text-teal-700" />
+                <h4>Radiological Differential Diagnosis & Critical Distinguishers</h4>
               </div>
-
-              <div className="p-4 bg-slate-50 rounded border border-slate-200 space-y-2.5">
-                <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs">
-                  <BookOpen className="w-4 h-4 text-teal-700" />
-                  <h4>Confirmatory & Advanced Diagnostic Workup</h4>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Standard advanced radiological and clinical protocols to corroborate convolutional classification:
-                </p>
-                <ul className="space-y-1.5 list-disc pl-4 text-slate-700 text-[11px]">
-                  {mriDetails.pathology.confirmatoryRecommendations.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
+              <p className="text-[11px] text-slate-500">
+                Pathologies sharing overlapping morphological or intensity characteristics that neuroradiologists evaluate:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {mriDetails.pathology.differentialDiagnosis.map((item, idx) => (
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 text-xs">{item.condition}</span>
+                      <span className="text-[10px] font-mono text-slate-400">Mimic #{idx + 1}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      <strong>Clinical Clue:</strong> {item.distinguishingFeatures}
+                    </p>
+                    <p className="text-[11px] text-teal-800 bg-teal-50/70 p-2 rounded border border-teal-100">
+                      <strong>MRI Discriminator:</strong> {item.imagingDiscriminator}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50/70 rounded border border-amber-200 text-amber-900 text-[11px] flex items-start gap-2">
+            {/* Surgical & Radiotherapy Strategy */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+              <h4 className="font-bold text-slate-900 text-xs font-mono uppercase flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-teal-700" />
+                Neurosurgical & Radiation Oncology Management
+              </h4>
+              <p className="text-slate-700 text-xs leading-relaxed">
+                {mriDetails.pathology.surgicalRadiotherapyApproach}
+              </p>
+            </div>
+
+            {/* Confirmatory Workup Recommendations */}
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
+              <h4 className="font-bold text-slate-900 text-xs font-mono uppercase">
+                Confirmatory Diagnostic Roadmap
+              </h4>
+              <ul className="space-y-1.5 list-disc pl-4 text-slate-700 text-[11px]">
+                {mriDetails.pathology.confirmatoryRecommendations.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Regulatory Disclaimer */}
+            <div className="p-3 bg-amber-50/70 rounded-lg border border-amber-200 text-amber-900 text-[11px] flex items-start gap-2">
               <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <span>
                 <strong>Research Prototype Guidance:</strong> Automated neural classification should always be correlated
-                with clinical symptomatology, laboratory markers, and multidisciplinary tumor board review.
+                with clinical symptomatology, laboratory markers, and multidisciplinary neuro-oncology tumor board review.
               </span>
             </div>
           </div>

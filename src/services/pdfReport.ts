@@ -482,7 +482,9 @@ export async function generateMriPdfReport(
 
   let diffY = currentY + 10;
   p.differentialDiagnosis.slice(0, 3).forEach((item) => {
-    doc.text(`• ${item}`, margin + 3, diffY);
+    const diffText = typeof item === 'string' ? item : `${item.condition} – ${item.imagingDiscriminator}`;
+    const splitDiff = doc.splitTextToSize(`• ${diffText}`, colW - 6);
+    doc.text(splitDiff[0] || '', margin + 3, diffY);
     diffY += 4.5;
   });
 
