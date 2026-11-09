@@ -13,6 +13,7 @@ import {
   saveAnalysisToUserFirestore,
   deleteAnalysisFromUserFirestore,
   subscribeToUserAnalyses,
+  AppUser,
 } from './services/firebase';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -29,8 +30,8 @@ export default function App() {
   const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
 
-  // Auth state
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Auth state (supports both Firebase User and verified Researcher Clinician session)
+  const [currentUser, setCurrentUser] = useState<User | AppUser | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalReason, setAuthModalReason] = useState<string | undefined>(undefined);
 
@@ -39,12 +40,42 @@ export default function App() {
     testFirestoreConnection();
   }, []);
 
-  // 2. Auth State Observer
+  // 2. Auth State Observer with local researcher fallback
   useEffect(() => {
+    const syncUser = () => {
+      const fbUser = auth.currentUser;
+      if (fbUser) {
+        setCurrentUser(fbUser);
+        return;
+      }
+      const savedSession = localStorage.getItem('neuroscan_researcher_session');
+      if (savedSession) {
+        try {
+          setCurrentUser(JSON.parse(savedSession));
+        } catch {
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    };
+
+    syncUser();
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        syncUser();
+      }
     });
-    return () => unsubscribeAuth();
+
+    window.addEventListener('neuroscan_auth_change', syncUser);
+
+    return () => {
+      unsubscribeAuth();
+      window.removeEventListener('neuroscan_auth_change', syncUser);
+    };
   }, []);
 
   // 3. Sync Firestore Data when User is Authenticated

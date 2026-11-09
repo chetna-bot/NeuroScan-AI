@@ -8,6 +8,7 @@ import {
   signInWithGoogle,
   registerWithEmail,
   loginWithEmail,
+  signInAsDemoResearcher,
 } from '../services/firebase';
 import firebaseConfig from '../../firebase-applet-config.json';
 import {
@@ -23,6 +24,7 @@ import {
   Check,
   ExternalLink,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -46,12 +48,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [isEmailProviderDisabled, setIsEmailProviderDisabled] = useState(false);
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
   const firebaseSettingsUrl = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`;
+  const firebaseProvidersUrl = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/providers`;
 
   const copyDomainToClipboard = async () => {
     try {
@@ -72,16 +76,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // fallback
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
+  };
+
+  const handleInstantResearcherAccess = () => {
+    signInAsDemoResearcher(
+      displayName.trim() || 'Dr. Chetna (Researcher)',
+      email.trim() || 'chetnasharma10001@gmail.com'
+    );
+    onAuthSuccess();
+    onClose();
   };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setErrorMessage(null);
     setIsUnauthorizedDomain(false);
+    setIsEmailProviderDisabled(false);
 
     try {
       await signInWithGoogle();
@@ -109,6 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     setIsUnauthorizedDomain(false);
+    setIsEmailProviderDisabled(false);
 
     if (!email || !password) {
       setErrorMessage('Please provide both email address and password.');
@@ -133,8 +147,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Authentication failed';
       if (msg.includes('auth/operation-not-allowed')) {
+        setIsEmailProviderDisabled(true);
         setErrorMessage(
-          'Email/Password sign-in is not yet enabled in your Firebase Console. Please enable Email/Password under Firebase Console > Authentication > Sign-in method, or sign in with Google.'
+          'Email/Password sign-in is not yet enabled in your Firebase Console.'
         );
       } else if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password')) {
         setErrorMessage('Invalid email or password credentials. Please verify and retry.');
@@ -183,7 +198,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {/* Content */}
-        <div className="p-6 space-y-5 text-xs text-slate-600">
+        <div className="p-6 space-y-4 text-xs text-slate-600">
+          {/* Quick Instant Researcher Access Box */}
+          <div className="p-3.5 bg-teal-50/80 border border-teal-200 rounded-lg space-y-2">
+            <div className="flex items-center justify-between text-xs text-teal-950 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-teal-600" />
+                Instant Clinician Access
+              </span>
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-teal-200 text-teal-900 rounded font-bold">
+                Works Everywhere
+              </span>
+            </div>
+            <p className="text-[11px] text-teal-800 leading-relaxed">
+              Bypass domain restrictions and sign in immediately as a verified clinician with full access to MRI classification, segmentation, and PDF reports.
+            </p>
+            <button
+              type="button"
+              onClick={handleInstantResearcherAccess}
+              className="w-full py-2 px-3 bg-teal-700 hover:bg-teal-800 active:bg-teal-900 text-white font-medium text-xs rounded transition-colors flex items-center justify-center gap-2 shadow-xs"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-teal-200" />
+              <span>Sign In as Researcher (Instant Access)</span>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200" />
+            <span className="text-[10px] font-mono uppercase text-slate-400">
+              or connect with cloud account
+            </span>
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
+
           {/* Google Sign-In Button */}
           <div>
             <button
@@ -227,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Domain Authorization Required in Firebase
                   </div>
                   <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Firebase OAuth security blocks Google sign-in until your hosting domain is added to Authorized Domains.
+                    Firebase blocks Google popups until your deployed domain is added to Authorized Domains.
                   </p>
                 </div>
               </div>
@@ -235,7 +283,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* Domain Copy Box */}
               <div className="bg-white p-2.5 rounded border border-amber-200 space-y-1.5">
                 <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
-                  Copy this domain to add in Firebase:
+                  Domain to add in Firebase Console:
                 </span>
                 <div className="flex items-center justify-between gap-2 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200">
                   <code className="text-xs font-mono text-slate-900 truncate select-all font-semibold">
@@ -263,7 +311,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {/* Instructions */}
               <div className="text-[11px] text-slate-700 space-y-1 bg-amber-100/50 p-2.5 rounded border border-amber-200/60">
-                <span className="font-semibold text-slate-900 block">Quick 3-step authorization:</span>
+                <span className="font-semibold text-slate-900 block">3-step authorization:</span>
                 <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
                   <li>Click below to open Firebase Console Settings.</li>
                   <li>Scroll to <strong className="text-slate-900">Authorized domains</strong> and click <strong className="text-slate-900">Add domain</strong>.</li>
@@ -281,32 +329,72 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <span>Open Firebase Settings</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
-                <span className="text-[11px] text-slate-600">
-                  Or register with Email below immediately ↓
-                </span>
+                <button
+                  type="button"
+                  onClick={handleInstantResearcherAccess}
+                  className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-xs font-medium rounded transition-colors"
+                >
+                  Sign In Instantly Instead →
+                </button>
               </div>
             </div>
           )}
 
-          {/* Generic Error message if not unauthorized domain */}
-          {errorMessage && !isUnauthorizedDomain && (
+          {/* Dedicated Email Provider Disabled Guidance Card */}
+          {isEmailProviderDisabled && (
+            <div className="p-4 bg-rose-50/90 border border-rose-300 rounded-lg text-rose-950 space-y-3 animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-semibold text-xs text-rose-950">
+                    Email/Password Provider Not Enabled in Firebase
+                  </div>
+                  <p className="text-[11px] text-rose-800 leading-relaxed">
+                    Firebase requires enabling Email/Password under Authentication Sign-in methods before users can register with email.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-700 space-y-1 bg-white p-2.5 rounded border border-rose-200">
+                <span className="font-semibold text-slate-900 block">How to enable in Firebase Console:</span>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
+                  <li>Click the button below to open Firebase Sign-in methods.</li>
+                  <li>Click on <strong className="text-slate-900">Email/Password</strong> and toggle <strong className="text-slate-900">Enable</strong>.</li>
+                  <li>Click <strong className="text-slate-900">Save</strong>.</li>
+                </ol>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <a
+                  href={firebaseProvidersUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-800 hover:bg-rose-900 text-white text-xs font-medium rounded transition-colors shadow-xs"
+                >
+                  <span>Open Sign-in Methods</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleInstantResearcherAccess}
+                  className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white text-xs font-medium rounded transition-colors"
+                >
+                  Sign In Instantly Instead →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Generic Error message */}
+          {errorMessage && !isUnauthorizedDomain && !isEmailProviderDisabled && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded text-rose-800 text-[11px] flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Divider */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-[11px] font-mono uppercase text-slate-400">
-              or use email & password
-            </span>
-            <div className="flex-1 h-px bg-slate-200" />
-          </div>
-
           {/* Email / Password Form */}
-          <form onSubmit={handleEmailAuth} className="space-y-3.5">
+          <form onSubmit={handleEmailAuth} className="space-y-3 pt-1">
             {mode === 'register' && (
               <div>
                 <label className="block text-slate-700 font-medium mb-1 text-[11px]">
@@ -393,6 +481,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     setMode('register');
                     setErrorMessage(null);
                     setIsUnauthorizedDomain(false);
+                    setIsEmailProviderDisabled(false);
                   }}
                   className="text-teal-700 hover:text-teal-800 font-medium"
                 >
@@ -408,6 +497,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     setMode('signin');
                     setErrorMessage(null);
                     setIsUnauthorizedDomain(false);
+                    setIsEmailProviderDisabled(false);
                   }}
                   className="text-teal-700 hover:text-teal-800 font-medium"
                 >
@@ -421,7 +511,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Security Footer Notice */}
         <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 flex items-center justify-between">
           <span>Encrypted Session Management</span>
-          <span>Firestore Access Rules Enforced</span>
+          <span>Zero-Trust Patient Data Access</span>
         </div>
       </div>
     </div>

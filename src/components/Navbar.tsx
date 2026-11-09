@@ -10,7 +10,7 @@ import { Activity } from 'lucide-react';
 interface NavbarProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
-  currentUser: import('firebase/auth').User | null;
+  currentUser: import('firebase/auth').User | import('../services/firebase').AppUser | null;
   onOpenAuthModal: (reason?: string) => void;
   onSignOut: () => void;
 }

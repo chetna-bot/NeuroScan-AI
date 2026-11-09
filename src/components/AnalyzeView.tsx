@@ -21,7 +21,7 @@ import {
 interface AnalyzeViewProps {
   onAnalysisSuccess: (result: AnalysisResult) => void;
   onTabChange: (tab: ActiveTab) => void;
-  currentUser: import('firebase/auth').User | null;
+  currentUser: import('firebase/auth').User | import('../services/firebase').AppUser | null;
   onOpenAuthModal: (reason?: string) => void;
 }
 

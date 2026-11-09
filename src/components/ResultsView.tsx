@@ -30,7 +30,7 @@ interface ResultsViewProps {
   result: AnalysisResult | null;
   onTabChange: (tab: ActiveTab) => void;
   onNewScan: () => void;
-  currentUser?: import('firebase/auth').User | null;
+  currentUser?: import('firebase/auth').User | import('../services/firebase').AppUser | null;
 }
 
 export const ResultsView: React.FC<ResultsViewProps> = ({

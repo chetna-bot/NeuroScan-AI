@@ -26,7 +26,7 @@ interface DashboardViewProps {
   onTabChange: (tab: ActiveTab) => void;
   onSelectResult: (result: AnalysisResult) => void;
   onClearHistory: () => void;
-  currentUser: import('firebase/auth').User | null;
+  currentUser: import('firebase/auth').User | import('../services/firebase').AppUser | null;
   onOpenAuthModal: (reason?: string) => void;
   onDeleteAnalysis?: (id: string) => void;
 }

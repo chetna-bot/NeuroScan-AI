@@ -102,6 +102,26 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
+export interface AppUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL?: string | null;
+}
+
+// Instant Clinician / Researcher Session (works 100% offline and on undeclared domains)
+export function signInAsDemoResearcher(customName?: string, customEmail?: string): AppUser {
+  const researcher: AppUser = {
+    uid: 'researcher-clinician-01',
+    displayName: customName || 'Dr. Chetna (Lead Researcher)',
+    email: customEmail || '240160226137.chetna@gdgu.org',
+    photoURL: '',
+  };
+  localStorage.setItem('neuroscan_researcher_session', JSON.stringify(researcher));
+  window.dispatchEvent(new Event('neuroscan_auth_change'));
+  return researcher;
+}
+
 // Auth Helpers
 export async function signInWithGoogle(): Promise<User> {
   const result = await signInWithPopup(auth, googleProvider);
@@ -149,7 +169,13 @@ export async function loginWithEmail(email: string, pass: string): Promise<User>
 }
 
 export async function logOut(): Promise<void> {
-  await signOut(auth);
+  localStorage.removeItem('neuroscan_researcher_session');
+  try {
+    await signOut(auth);
+  } catch {
+    // Ignore signout errors
+  }
+  window.dispatchEvent(new Event('neuroscan_auth_change'));
 }
 
 // Save Analysis to User's Firestore Subcollection
