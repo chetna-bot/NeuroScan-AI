@@ -218,32 +218,26 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
         </p>
       </div>
 
-      {/* Upload Box or Preview - Gated by Authentication */}
-      {!currentUser ? (
-        <div className="bg-white rounded-lg border border-slate-200 p-8 sm:p-12 text-center space-y-4 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-700">
-            <Lock className="w-6 h-6" />
+      {/* Clinician status banner when not signed in with cloud */}
+      {!currentUser && (
+        <div className="p-3 bg-slate-100/90 border border-slate-200 rounded text-slate-700 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="font-medium text-slate-900">Clinician Workspace Active</span>
+            <span className="text-slate-500 text-[11px] hidden sm:inline">
+              · Instant neural processing and local report saving enabled
+            </span>
           </div>
-          <div className="max-w-md mx-auto space-y-2">
-            <h3 className="text-base font-semibold text-slate-900">
-              Authentication Required to Upload Patient MRIs
-            </h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              To protect sensitive neuroimaging data and maintain compliance with research protocols,
-              please sign in with your Google or researcher account before submitting new scans for neural inference.
-            </p>
-          </div>
-          <div className="pt-2">
-            <button
-              onClick={() => onOpenAuthModal('Authentication required to upload and analyze MRI scans.')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded transition-colors shadow-sm"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Sign In with Google or Email</span>
-            </button>
-          </div>
+          <button
+            onClick={() => onOpenAuthModal('Sign in to sync patient records with your cloud account.')}
+            className="text-xs text-teal-700 hover:text-teal-800 font-semibold underline underline-offset-2 shrink-0"
+          >
+            Cloud Sync Sign In
+          </button>
         </div>
-      ) : !previewUrl ? (
+      )}
+
+      {!previewUrl ? (
         <div className="space-y-4">
           <div
             onDrop={handleDrop}

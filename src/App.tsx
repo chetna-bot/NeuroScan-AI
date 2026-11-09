@@ -194,12 +194,7 @@ export default function App() {
     setActiveTab('analyze');
   };
 
-  // Safe navigation gate: protect patient data from unauthenticated access
   const handleTabChange = (tab: ActiveTab) => {
-    if ((tab === 'analyze' || tab === 'dashboard') && !currentUser) {
-      openAuthWithReason('Authentication required to access protected patient MRI workflows.');
-      // Still allow viewing dashboard or analyze landing with protection gates
-    }
     setActiveTab(tab);
   };
 

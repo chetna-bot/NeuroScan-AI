@@ -45,25 +45,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Auth Protection Banner if not signed in */}
+      {/* Clinician status banner if not signed in */}
       {!currentUser && (
-        <div className="p-4 rounded-lg bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <Lock className="w-4 h-4 text-teal-400 shrink-0" />
+        <div className="p-3.5 rounded border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5 text-slate-700">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
             <div>
-              <span className="font-semibold text-white">
-                Sensitive Neuroimaging Data Protection
+              <span className="font-semibold text-slate-900">
+                Clinician Session Active
               </span>
-              <p className="text-slate-300 text-[11px] mt-0.5">
-                Sign in with Google to securely store, synchronize, and persist your MRI analysis records in Cloud Firestore.
+              <p className="text-slate-500 text-[11px] mt-0.5">
+                Diagnostic reports are automatically saved to your browser. Sign in to sync patient records with Cloud Firestore.
               </p>
             </div>
           </div>
           <button
-            onClick={() => onOpenAuthModal('Please sign in to securely persist and access MRI data.')}
-            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded text-xs transition-colors shrink-0 whitespace-nowrap"
+            onClick={() => onOpenAuthModal('Sign in to sync your diagnostic analyses across devices.')}
+            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded text-xs transition-colors shrink-0 whitespace-nowrap shadow-xs"
           >
-            Sign In with Google
+            Cloud Account Sign In
           </button>
         </div>
       )}
