@@ -9,6 +9,7 @@ import {
   registerWithEmail,
   loginWithEmail,
 } from '../services/firebase';
+import firebaseConfig from '../../firebase-applet-config.json';
 import {
   X,
   Lock,
@@ -18,6 +19,10 @@ import {
   Loader2,
   ShieldCheck,
   CheckCircle2,
+  Copy,
+  Check,
+  ExternalLink,
+  Globe,
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -40,19 +45,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+  const firebaseSettingsUrl = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`;
+
+  const copyDomainToClipboard = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentHost);
+        setCopied(true);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = currentHost;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+      }
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // fallback
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     setErrorMessage(null);
+    setIsUnauthorizedDomain(false);
+
     try {
       await signInWithGoogle();
       onAuthSuccess();
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Google sign-in was interrupted';
-      setErrorMessage(msg);
+      if (msg.includes('auth/unauthorized-domain')) {
+        setIsUnauthorizedDomain(true);
+        setErrorMessage(
+          `Domain authorization required: "${currentHost}" must be added to your Firebase project's Authorized Domains list.`
+        );
+      } else if (msg.includes('auth/popup-closed-by-user') || msg.includes('auth/cancelled-popup-request')) {
+        setErrorMessage('Sign-in popup was closed before completing.');
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsGoogleLoading(false);
     }
@@ -62,6 +108,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setIsUnauthorizedDomain(false);
 
     if (!email || !password) {
       setErrorMessage('Please provide both email address and password.');
@@ -87,7 +134,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const msg = err instanceof Error ? err.message : 'Authentication failed';
       if (msg.includes('auth/operation-not-allowed')) {
         setErrorMessage(
-          'Email/Password provider is not yet enabled in your Firebase Console. Please sign in with Google or enable Email/Password provider in Firebase Console > Authentication > Sign-in method.'
+          'Email/Password sign-in is not yet enabled in your Firebase Console. Please enable Email/Password under Firebase Console > Authentication > Sign-in method, or sign in with Google.'
         );
       } else if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password')) {
         setErrorMessage('Invalid email or password credentials. Please verify and retry.');
@@ -102,8 +149,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-slate-200 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-slate-200 overflow-hidden my-6">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
@@ -170,11 +217,90 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </div>
 
+          {/* Dedicated Authorized Domain Guidance Card */}
+          {isUnauthorizedDomain && (
+            <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-lg text-amber-950 space-y-3 animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <Globe className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-semibold text-xs text-amber-950">
+                    Domain Authorization Required in Firebase
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Firebase OAuth security blocks Google sign-in until your hosting domain is added to Authorized Domains.
+                  </p>
+                </div>
+              </div>
+
+              {/* Domain Copy Box */}
+              <div className="bg-white p-2.5 rounded border border-amber-200 space-y-1.5">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                  Copy this domain to add in Firebase:
+                </span>
+                <div className="flex items-center justify-between gap-2 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200">
+                  <code className="text-xs font-mono text-slate-900 truncate select-all font-semibold">
+                    {currentHost}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={copyDomainToClipboard}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-900 rounded transition-colors shrink-0"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700 font-semibold">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-700" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="text-[11px] text-slate-700 space-y-1 bg-amber-100/50 p-2.5 rounded border border-amber-200/60">
+                <span className="font-semibold text-slate-900 block">Quick 3-step authorization:</span>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-700">
+                  <li>Click below to open Firebase Console Settings.</li>
+                  <li>Scroll to <strong className="text-slate-900">Authorized domains</strong> and click <strong className="text-slate-900">Add domain</strong>.</li>
+                  <li>Paste <code className="bg-white px-1 py-0.5 rounded text-slate-900 font-mono text-[10px] font-semibold">{currentHost}</code> and click <strong className="text-slate-900">Done</strong>.</li>
+                </ol>
+              </div>
+
+              <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
+                <a
+                  href={firebaseSettingsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white text-xs font-medium rounded transition-colors shadow-xs"
+                >
+                  <span>Open Firebase Settings</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <span className="text-[11px] text-slate-600">
+                  Or register with Email below immediately ↓
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Generic Error message if not unauthorized domain */}
+          {errorMessage && !isUnauthorizedDomain && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded text-rose-800 text-[11px] flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-slate-200" />
             <span className="text-[11px] font-mono uppercase text-slate-400">
-              or use email
+              or use email & password
             </span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
@@ -238,13 +364,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {errorMessage && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded text-rose-800 text-[11px] flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={isLoading || isGoogleLoading}
@@ -256,7 +375,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <span>Processing...</span>
                 </>
               ) : mode === 'signin' ? (
-                'Sign In'
+                'Sign In with Email'
               ) : (
                 'Create Account'
               )}
@@ -273,6 +392,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setMode('register');
                     setErrorMessage(null);
+                    setIsUnauthorizedDomain(false);
                   }}
                   className="text-teal-700 hover:text-teal-800 font-medium"
                 >
@@ -287,6 +407,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setMode('signin');
                     setErrorMessage(null);
+                    setIsUnauthorizedDomain(false);
                   }}
                   className="text-teal-700 hover:text-teal-800 font-medium"
                 >

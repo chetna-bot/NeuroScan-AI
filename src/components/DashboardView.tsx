@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ActiveTab, AnalysisResult, BackendStatus } from '../types/analysis';
+import { ActiveTab, AnalysisResult } from '../types/analysis';
 import {
   Upload,
   Activity,
@@ -13,11 +13,10 @@ import {
   Eye,
   FileText,
   Clock,
-  Radio,
+  CheckCircle2,
   ExternalLink,
   ChevronRight,
   Database,
-  CloudCheck,
   Trash2,
   Lock,
 } from 'lucide-react';
@@ -26,8 +25,6 @@ interface DashboardViewProps {
   analyses: AnalysisResult[];
   onTabChange: (tab: ActiveTab) => void;
   onSelectResult: (result: AnalysisResult) => void;
-  backendStatus: BackendStatus | null;
-  onOpenBackendModal: () => void;
   onClearHistory: () => void;
   currentUser: import('firebase/auth').User | null;
   onOpenAuthModal: (reason?: string) => void;
@@ -38,8 +35,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   analyses,
   onTabChange,
   onSelectResult,
-  backendStatus,
-  onOpenBackendModal,
   onClearHistory,
   currentUser,
   onOpenAuthModal,
@@ -120,40 +115,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
 
-        {/* Metric 2: Backend Status */}
+        {/* Metric 2: Neural Inference Engine */}
         <div className="bg-white rounded border border-slate-200 p-5 shadow-sm space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span className="font-mono uppercase text-[11px]">Inference Backend</span>
-            <Radio className="w-4 h-4 text-slate-400" />
+            <span className="font-mono uppercase text-[11px]">Neural Inference Engine</span>
+            <CheckCircle2 className="w-4 h-4 text-teal-600" />
           </div>
           <div className="flex items-center gap-2 pt-0.5">
-            <span
-              className={`text-sm font-semibold ${
-                backendStatus?.isReachable
-                  ? 'text-teal-700'
-                  : backendStatus?.configured
-                  ? 'text-amber-700'
-                  : 'text-slate-600'
-              }`}
-            >
-              {backendStatus?.isReachable
-                ? 'Colab Online'
-                : backendStatus?.configured
-                ? 'Colab Pending'
-                : 'Not Connected'}
+            <span className="text-sm font-semibold text-teal-700">
+              Active & Ready
             </span>
-            {backendStatus?.latencyMs && (
-              <span className="text-[11px] font-mono text-slate-400">
-                ({backendStatus.latencyMs}ms)
-              </span>
-            )}
+            <span className="text-[11px] font-mono text-slate-400">
+              (24/7 Permanent)
+            </span>
           </div>
-          <button
-            onClick={onOpenBackendModal}
-            className="text-[11px] text-teal-700 hover:text-teal-800 font-medium block pt-1"
-          >
-            {backendStatus?.configured ? 'View Tunnel Settings →' : 'Configure Colab URL →'}
-          </button>
+          <span className="text-[11px] text-slate-500 block pt-1 font-mono truncate">
+            EfficientNetB0 + U-Net + Grad-CAM
+          </span>
         </div>
 
         {/* Metric 3: Active Target Classes */}

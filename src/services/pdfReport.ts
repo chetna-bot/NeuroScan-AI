@@ -5,6 +5,7 @@
 
 import { jsPDF } from 'jspdf';
 import { AnalysisResult } from '../types/analysis';
+import { getMriDetailedAnalysis } from './mriDiagnosisExplainer';
 
 export async function generateMriPdfReport(
   analysis: AnalysisResult,
@@ -346,7 +347,6 @@ export async function generateMriPdfReport(
 
   currentY += 20;
 
-  const { PATHOLOGY_PROFILES, getMriDetailedAnalysis } = await import('./mriDiagnosisExplainer');
   const details = getMriDetailedAnalysis(analysis);
   const p = details.pathology;
 

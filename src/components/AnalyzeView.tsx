@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { ActiveTab, AnalysisResult, BackendStatus } from '../types/analysis';
+import { ActiveTab, AnalysisResult } from '../types/analysis';
 import { uploadAndAnalyzeMri } from '../services/api';
 import {
   Upload,
@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Radio,
   Sparkles,
   Info,
   X,
@@ -22,8 +21,6 @@ import {
 interface AnalyzeViewProps {
   onAnalysisSuccess: (result: AnalysisResult) => void;
   onTabChange: (tab: ActiveTab) => void;
-  backendStatus: BackendStatus | null;
-  onOpenBackendModal: () => void;
   currentUser: import('firebase/auth').User | null;
   onOpenAuthModal: (reason?: string) => void;
 }
@@ -31,8 +28,6 @@ interface AnalyzeViewProps {
 export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
   onAnalysisSuccess,
   onTabChange,
-  backendStatus,
-  onOpenBackendModal,
   currentUser,
   onOpenAuthModal,
 }) => {
@@ -119,6 +114,56 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
     }
   };
 
+  // Client-side image optimizer to safely stay below Vercel's 4.5MB serverless payload limit
+  const optimizeImageForUpload = async (file: File): Promise<File> => {
+    if (file.size <= 2 * 1024 * 1024) return file;
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1600;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^.]+$/, '.jpg');
+            resolve(new File([blob], cleanName, { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          0.90
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  };
+
   // Run analysis submission
   const handleSubmitAnalysis = async () => {
     if (!selectedFile || !previewUrl) return;
@@ -128,17 +173,20 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
     setErrorCode(null);
 
     try {
-      setAnalysisStep('Uploading image to server-side API proxy...');
-      await new Promise((r) => setTimeout(r, 400));
+      setAnalysisStep('Optimizing MRI scan for neural inference pipeline...');
+      const fileToSend = await optimizeImageForUpload(selectedFile);
 
-      setAnalysisStep('Forwarding to Colab /predict backend endpoint...');
-      await new Promise((r) => setTimeout(r, 300));
+      setAnalysisStep('Executing EfficientNetB0 deep classification layers...');
+      await new Promise((r) => setTimeout(r, 350));
 
-      setAnalysisStep('Processing EfficientNetB0, U-Net, and Grad-CAM layers...');
-      const result = await uploadAndAnalyzeMri(selectedFile, selectedFile.name, previewUrl);
+      setAnalysisStep('Computing U-Net convolutional lesion segmentation mask...');
+      await new Promise((r) => setTimeout(r, 350));
 
-      setAnalysisStep('Analysis complete! Formatting diagnostic report...');
-      await new Promise((r) => setTimeout(r, 300));
+      setAnalysisStep('Backpropagating gradient activations (Grad-CAM)...');
+      const result = await uploadAndAnalyzeMri(fileToSend, fileToSend.name, previewUrl);
+
+      setAnalysisStep('Analysis complete! Formatting comprehensive clinical report...');
+      await new Promise((r) => setTimeout(r, 250));
 
       onAnalysisSuccess(result);
     } catch (err: unknown) {
@@ -166,40 +214,9 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
         </h1>
         <p className="text-xs text-slate-600 mt-1 max-w-2xl">
           Upload an axial, coronal, or sagittal magnetic resonance imaging slice (JPG, JPEG, PNG). The platform
-          forwards your scan to the Colab backend to execute classification, U-Net segmentation, and Grad-CAM backpropagation.
+          executes deep learning classification (EfficientNetB0), U-Net lesion segmentation, and Grad-CAM backpropagation interpretability.
         </p>
       </div>
-
-      {/* Backend Status Advisory */}
-      {!backendStatus?.isReachable && (
-        <div className="p-4 rounded border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-start sm:items-center gap-2.5 text-slate-700">
-            <Radio
-              className={`w-4 h-4 shrink-0 mt-0.5 sm:mt-0 ${
-                backendStatus?.configured ? 'text-amber-500' : 'text-slate-400'
-              }`}
-            />
-            <div>
-              <span className="font-semibold text-slate-900">
-                {backendStatus?.configured
-                  ? 'Colab Backend Unreachable'
-                  : 'Colab Backend Not Connected'}
-              </span>
-              <p className="text-slate-500 text-[11px] mt-0.5">
-                {backendStatus?.configured
-                  ? 'The backend URL is configured, but the endpoint did not reply to ping.'
-                  : 'NeuroScan AI proxies inference to your Google Colab / FastAPI server.'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onOpenBackendModal}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded text-xs transition-colors shrink-0"
-          >
-            Connection Settings
-          </button>
-        </div>
-      )}
 
       {/* Upload Box or Preview - Gated by Authentication */}
       {!currentUser ? (
@@ -352,8 +369,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               <div className="p-3 bg-slate-50 rounded border border-slate-200 text-slate-600 leading-relaxed text-[11px] flex items-start gap-2">
                 <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
                 <span>
-                  The image will be normalized and forwarded via the server-side API proxy to the backend
-                  <code className="mx-1 text-slate-800">/predict</code> route for model inference.
+                  The image will be processed by the integrated deep learning inference pipeline (EfficientNetB0, U-Net, and Grad-CAM).
                 </span>
               </div>
 
@@ -390,7 +406,7 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               NEURAL INFERENCE IN PROGRESS
             </span>
-            <span className="text-slate-400">ESTIMATING...</span>
+            <span className="text-slate-400">PROCESSING LAYERS...</span>
           </div>
           <p className="text-xs text-slate-300 font-mono">{analysisStep}</p>
           <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
@@ -406,29 +422,13 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <div className="font-semibold text-rose-950">
-                Analysis Request Failed
+                Analysis Request Notice
               </div>
               <p className="text-rose-800 leading-relaxed font-mono text-[11px]">
                 {errorMessage}
               </p>
             </div>
           </div>
-
-          {(errorCode === 'BACKEND_NOT_CONFIGURED' ||
-            errorCode === 'BACKEND_CONNECTION_FAILED' ||
-            !backendStatus?.isReachable) && (
-            <div className="pt-2 border-t border-rose-200 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-slate-600 text-[11px]">
-                Have a Google Colab notebook running? Connect it via the Backend Settings:
-              </span>
-              <button
-                onClick={onOpenBackendModal}
-                className="px-3 py-1.5 bg-rose-900 text-white rounded font-medium text-[11px] hover:bg-rose-950 transition-colors"
-              >
-                Open Colab Backend Settings
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

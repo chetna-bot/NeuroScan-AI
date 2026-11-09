@@ -5,8 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { ActiveTab, AnalysisResult, BackendStatus } from './types/analysis';
-import { fetchBackendStatus } from './services/api';
+import { ActiveTab, AnalysisResult } from './types/analysis';
 import {
   auth,
   logOut,
@@ -21,7 +20,6 @@ import { LandingView } from './components/LandingView';
 import { DashboardView } from './components/DashboardView';
 import { AnalyzeView } from './components/AnalyzeView';
 import { ResultsView } from './components/ResultsView';
-import { ColabSetupModal } from './components/ColabSetupModal';
 import { AuthModal } from './components/AuthModal';
 
 const STORAGE_KEY = 'neuroscan_ai_analyses_v1';
@@ -30,8 +28,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('landing');
   const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null);
-  const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
-  const [isBackendModalOpen, setIsBackendModalOpen] = useState(false);
 
   // Auth state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -91,16 +87,6 @@ export default function App() {
     return () => unsubscribeFirestore();
   }, [currentUser]);
 
-  // 4. Fetch initial backend connection status
-  useEffect(() => {
-    fetchBackendStatus()
-      .then((status) => {
-        setBackendStatus(status);
-      })
-      .catch(() => {
-        // Handled silently
-      });
-  }, []);
 
   const openAuthWithReason = (reason?: string) => {
     setAuthModalReason(reason);
@@ -192,8 +178,6 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        backendStatus={backendStatus}
-        onOpenBackendModal={() => setIsBackendModalOpen(true)}
         currentUser={currentUser}
         onOpenAuthModal={openAuthWithReason}
         onSignOut={handleSignOut}
@@ -208,8 +192,6 @@ export default function App() {
             analyses={analyses}
             onTabChange={handleTabChange}
             onSelectResult={handleSelectResult}
-            backendStatus={backendStatus}
-            onOpenBackendModal={() => setIsBackendModalOpen(true)}
             onClearHistory={handleClearHistory}
             currentUser={currentUser}
             onOpenAuthModal={openAuthWithReason}
@@ -221,8 +203,6 @@ export default function App() {
           <AnalyzeView
             onAnalysisSuccess={handleAnalysisSuccess}
             onTabChange={handleTabChange}
-            backendStatus={backendStatus}
-            onOpenBackendModal={() => setIsBackendModalOpen(true)}
             currentUser={currentUser}
             onOpenAuthModal={openAuthWithReason}
           />
@@ -241,15 +221,7 @@ export default function App() {
       {/* 3. Global Footer */}
       <Footer onTabChange={handleTabChange} />
 
-      {/* 4. Colab Backend Connection Modal */}
-      <ColabSetupModal
-        isOpen={isBackendModalOpen}
-        onClose={() => setIsBackendModalOpen(false)}
-        status={backendStatus}
-        onStatusUpdated={(status) => setBackendStatus(status)}
-      />
-
-      {/* 5. User Authentication Modal */}
+      {/* 4. User Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

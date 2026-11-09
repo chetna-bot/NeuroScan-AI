@@ -4,14 +4,12 @@
  */
 
 import React from 'react';
-import { ActiveTab, BackendStatus } from '../types/analysis';
-import { Activity, Radio } from 'lucide-react';
+import { ActiveTab } from '../types/analysis';
+import { Activity } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
-  backendStatus: BackendStatus | null;
-  onOpenBackendModal: () => void;
   currentUser: import('firebase/auth').User | null;
   onOpenAuthModal: (reason?: string) => void;
   onSignOut: () => void;
@@ -20,8 +18,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
-  backendStatus,
-  onOpenBackendModal,
   currentUser,
   onOpenAuthModal,
   onSignOut,
@@ -76,36 +72,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Primary Action & Connection Status & Auth */}
+        {/* Zone 3: Primary Action & Auth */}
         <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={onOpenBackendModal}
-            title={
-              backendStatus?.isReachable
-                ? 'Colab Backend Connected'
-                : backendStatus?.configured
-                ? 'Backend Configured (Connecting...)'
-                : 'Configure Colab Backend'
-            }
-            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded border border-slate-200 transition-colors whitespace-nowrap shrink-0"
-          >
-            <Radio
-              className={`w-3.5 h-3.5 ${
-                backendStatus?.isReachable
-                  ? 'text-teal-600'
-                  : backendStatus?.configured
-                  ? 'text-amber-500'
-                  : 'text-slate-400'
-              }`}
-            />
-            <span className="hidden sm:inline font-mono">
-              {backendStatus?.isReachable
-                ? 'Colab Online'
-                : backendStatus?.configured
-                ? 'Colab Pending'
-                : 'Connect Colab'}
-            </span>
-          </button>
 
           {/* User Authentication Status */}
           {currentUser ? (
