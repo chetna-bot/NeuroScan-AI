@@ -20,8 +20,10 @@ import {
   Maximize2,
   Sliders,
 } from 'lucide-react';
-import mriBrainAxialScan from '../assets/images/mri_brain_axial_scan_1794122030039.jpg';
-import mriInterfacePreview from '../assets/images/mri_interface_preview_1794122030875.jpg';
+import {
+  AXIAL_MRI_PREVIEW_BASE64,
+  TRIMODAL_INTERFACE_BASE64,
+} from '../assets/embeddedMriImages';
 
 interface LandingViewProps {
   onTabChange: (tab: ActiveTab) => void;
@@ -29,11 +31,6 @@ interface LandingViewProps {
 
 export const LandingView: React.FC<LandingViewProps> = ({ onTabChange }) => {
   const [previewMode, setPreviewMode] = useState<'scan' | 'unet' | 'gradcam'>('scan');
-  const [imgSrc, setImgSrc] = useState<string>(mriBrainAxialScan || '/images/mri_brain_axial_scan.jpg');
-  const [imgError, setImgError] = useState(false);
-  const [interfaceImgSrc, setInterfaceImgSrc] = useState<string>(
-    mriInterfacePreview || '/images/mri_interface_preview.jpg'
-  );
   return (
     <div className="space-y-16 py-8">
       {/* 1. Hero Section */}
@@ -249,22 +246,12 @@ export const LandingView: React.FC<LandingViewProps> = ({ onTabChange }) => {
                   </svg>
                 </div>
 
-                {/* 2. LAYER 2: Actual Real MRI Scan Image (Loads on Top With Automatic Fallbacks) */}
-                {!imgError && (
-                  <img
-                    src={imgSrc}
-                    alt="Axial brain MRI diagnostic slice preview"
-                    referrerPolicy="no-referrer"
-                    onError={() => {
-                      if (imgSrc !== '/images/mri_brain_axial_scan.jpg') {
-                        setImgSrc('/images/mri_brain_axial_scan.jpg');
-                      } else {
-                        setImgError(true);
-                      }
-                    }}
-                    className="absolute inset-0 w-full h-full object-cover mix-blend-luminosity opacity-90 transition-opacity duration-300"
-                  />
-                )}
+                {/* 2. LAYER 2: Actual Real MRI Scan Image (Permanent Inline Base64 Data URI) */}
+                <img
+                  src={AXIAL_MRI_PREVIEW_BASE64}
+                  alt="Axial brain MRI diagnostic slice preview"
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+                />
 
                 {/* 3. LAYER 3: U-Net Lesion Boundary Segmentation Mode Overlay */}
                 {previewMode === 'unet' && (
@@ -453,17 +440,11 @@ export const LandingView: React.FC<LandingViewProps> = ({ onTabChange }) => {
             </div>
 
             <div className="lg:col-span-7">
-              <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-slate-950 min-h-[260px] flex items-center justify-center relative">
+              <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm bg-slate-950 flex items-center justify-center relative">
                 <img
-                  src={interfaceImgSrc}
+                  src={TRIMODAL_INTERFACE_BASE64}
                   alt="NeuroScan AI clinical analytical workstation display"
-                  referrerPolicy="no-referrer"
-                  onError={() => {
-                    if (interfaceImgSrc !== '/images/mri_interface_preview.jpg') {
-                      setInterfaceImgSrc('/images/mri_interface_preview.jpg');
-                    }
-                  }}
-                  className="w-full h-auto object-cover max-h-[380px]"
+                  className="w-full h-auto object-cover max-h-[400px]"
                 />
               </div>
             </div>
