@@ -17,6 +17,7 @@ import {
   X,
   Lock,
 } from 'lucide-react';
+import sampleMriImage from '../assets/images/mri_brain_axial_scan_1794122030039.jpg';
 
 interface AnalyzeViewProps {
   onAnalysisSuccess: (result: AnalysisResult) => void;
@@ -104,11 +105,81 @@ export const AnalyzeView: React.FC<AnalyzeViewProps> = ({
     try {
       setErrorMessage(null);
       setErrorCode(null);
-      const samplePath = '/src/assets/images/mri_brain_axial_scan_1794122030039.jpg';
-      const response = await fetch(samplePath);
-      const blob = await response.blob();
-      const file = new File([blob], 'sample_axial_t1_brain_mri.jpg', { type: 'image/jpeg' });
-      validateAndSetFile(file);
+      let response: Response | null = null;
+      try {
+        response = await fetch(sampleMriImage);
+      } catch {
+        response = null;
+      }
+      if (!response || !response.ok) {
+        try {
+          response = await fetch('/images/mri_brain_axial_scan.jpg');
+        } catch {
+          response = null;
+        }
+      }
+
+      if (response && response.ok) {
+        const blob = await response.blob();
+        const file = new File([blob], 'sample_axial_t1_brain_mri.jpg', { type: 'image/jpeg' });
+        validateAndSetFile(file);
+        return;
+      }
+
+      // If network fetch fails, generate a high-contrast clinical MRI slice procedurally
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d')!;
+
+      // Dark background
+      ctx.fillStyle = '#050914';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Calvarial ring
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.ellipse(256, 256, 195, 222, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Brain parenchyma
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.ellipse(256, 256, 178, 204, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ventricles (CSF dark)
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.ellipse(236, 250, 14, 52, -0.15, 0, Math.PI * 2);
+      ctx.ellipse(276, 250, 14, 52, 0.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Interhemispheric fissure
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(256, 60);
+      ctx.lineTo(256, 450);
+      ctx.stroke();
+
+      // Hyperintense Glioma/Tumor lesion in right frontal lobe
+      const lesionGrad = ctx.createRadialGradient(185, 215, 4, 185, 215, 42);
+      lesionGrad.addColorStop(0, '#ffffff');
+      lesionGrad.addColorStop(0.35, '#e2e8f0');
+      lesionGrad.addColorStop(0.7, '#94a3b8');
+      lesionGrad.addColorStop(1, '#64748b');
+      ctx.fillStyle = lesionGrad;
+      ctx.beginPath();
+      ctx.arc(185, 215, 40, 0, Math.PI * 2);
+      ctx.fill();
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], 'sample_axial_t1_brain_mri.jpg', { type: 'image/jpeg' });
+          validateAndSetFile(file);
+        }
+      }, 'image/jpeg', 0.95);
     } catch {
       setErrorMessage('Failed to load sample image.');
     }
