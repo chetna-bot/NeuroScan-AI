@@ -207,6 +207,9 @@ app.post(
         probabilities: neuralResult.probabilities,
         segmentation_mask: neuralResult.segmentation_mask,
         gradcam_image: neuralResult.gradcam_image,
+        tumor_area_cm2: neuralResult.tumor_area_cm2,
+        tumor_area_mm2: neuralResult.tumor_area_mm2,
+        tumor_metrics: neuralResult.tumor_metrics,
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Internal Server Error';

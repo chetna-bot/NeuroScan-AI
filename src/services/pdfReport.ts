@@ -4,7 +4,7 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { AnalysisResult } from '../types/analysis';
+import { AnalysisResult, getTumorMetrics } from '../types/analysis';
 import { getMriDetailedAnalysis } from './mriDiagnosisExplainer';
 
 export async function generateMriPdfReport(
@@ -172,7 +172,70 @@ export async function generateMriPdfReport(
     probY += 5.5;
   });
 
-  currentY += 40;
+  currentY += 38;
+
+  // Dedicated Quantitative Lesion Volumetry & Area Calibration Box
+  const metrics = getTumorMetrics(analysis);
+  const isTumor = String(analysis.predicted_class).toLowerCase() !== 'no tumor';
+
+  doc.setFillColor(navyColor[0], navyColor[1], navyColor[2]);
+  doc.rect(margin, currentY, contentWidth, 18, 'F');
+
+  const colW = contentWidth / 4;
+
+  // Col 1: Tumor Surface Area
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(204, 251, 241);
+  doc.text('CALIBRATED TUMOR AREA', margin + 4, currentY + 5);
+  doc.setFontSize(9.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(isTumor ? `${metrics.area_cm2} cm²` : '0.00 cm²', margin + 4, currentY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(148, 163, 184);
+  doc.text(isTumor ? `(${metrics.area_mm2} mm²)` : 'Intact Parenchyma', margin + 4, currentY + 15);
+
+  // Col 2: Estimated Volume
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(204, 251, 241);
+  doc.text('ESTIMATED 3D VOLUME', margin + colW + 4, currentY + 5);
+  doc.setFontSize(9.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(isTumor ? `${metrics.estimated_volume_cm3} cm³` : '0.00 cm³', margin + colW + 4, currentY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(148, 163, 184);
+  doc.text(isTumor ? 'Ellipsoidal equivalent' : 'No mass volume', margin + colW + 4, currentY + 15);
+
+  // Col 3: Caliper Dimensions
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(204, 251, 241);
+  doc.text('RANO CALIPER (MAX × MIN)', margin + colW * 2 + 4, currentY + 5);
+  doc.setFontSize(9.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(isTumor ? `${metrics.major_axis_mm} × ${metrics.minor_axis_mm} mm` : '0.0 × 0.0 mm', margin + colW * 2 + 4, currentY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(148, 163, 184);
+  doc.text('220 mm clinical FOV', margin + colW * 2 + 4, currentY + 15);
+
+  // Col 4: Slice Occupancy
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(204, 251, 241);
+  doc.text('BRAIN SLICE OCCUPANCY', margin + colW * 3 + 4, currentY + 5);
+  doc.setFontSize(9.5);
+  doc.setTextColor(255, 255, 255);
+  doc.text(isTumor ? `${metrics.brain_occupancy_pct}%` : '0.00%', margin + colW * 3 + 4, currentY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(148, 163, 184);
+  doc.text(isTumor ? `${metrics.pixel_count} segmented px` : 'Zero lesion pixels', margin + colW * 3 + 4, currentY + 15);
+
+  currentY += 22;
 
   // 4. Section B & C: Multi-Modal Tri-Panel Visualizations
   doc.setFillColor(navyColor[0], navyColor[1], navyColor[2]);
@@ -183,7 +246,7 @@ export async function generateMriPdfReport(
   doc.setTextColor(navyColor[0], navyColor[1], navyColor[2]);
   doc.text('B & C. Neural Visualizations (Original MRI, U-Net Mask, Grad-CAM Saliency)', margin + 6, currentY + 7);
 
-  currentY += 14;
+  currentY += 13;
 
   // Tri-panel image boxes
   const imgWidth = (contentWidth - 8) / 3;
@@ -465,16 +528,16 @@ export async function generateMriPdfReport(
 
   currentY += 10;
 
-  const colW = (contentWidth - 4) / 2;
+  const halfColW = (contentWidth - 4) / 2;
   doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-  doc.rect(margin, currentY, colW, 26, 'FD');
-  doc.rect(margin + colW + 4, currentY, colW, 26, 'FD');
+  doc.rect(margin, currentY, halfColW, 26, 'FD');
+  doc.rect(margin + halfColW + 4, currentY, halfColW, 26, 'FD');
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(navyColor[0], navyColor[1], navyColor[2]);
   doc.text('RADIOLOGICAL DIFFERENTIALS:', margin + 3, currentY + 5);
-  doc.text('RECOMMENDED CONFIRMATORY WORKUP:', margin + colW + 7, currentY + 5);
+  doc.text('RECOMMENDED CONFIRMATORY WORKUP:', margin + halfColW + 7, currentY + 5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
@@ -483,15 +546,15 @@ export async function generateMriPdfReport(
   let diffY = currentY + 10;
   p.differentialDiagnosis.slice(0, 3).forEach((item) => {
     const diffText = typeof item === 'string' ? item : `${item.condition} – ${item.imagingDiscriminator}`;
-    const splitDiff = doc.splitTextToSize(`• ${diffText}`, colW - 6);
+    const splitDiff = doc.splitTextToSize(`• ${diffText}`, halfColW - 6);
     doc.text(splitDiff[0] || '', margin + 3, diffY);
     diffY += 4.5;
   });
 
   let recY = currentY + 10;
   p.confirmatoryRecommendations.slice(0, 3).forEach((item) => {
-    const splitRec = doc.splitTextToSize(`• ${item}`, colW - 6);
-    doc.text(splitRec[0], margin + colW + 7, recY);
+    const splitRec = doc.splitTextToSize(`• ${item}`, halfColW - 6);
+    doc.text(splitRec[0], margin + halfColW + 7, recY);
     recY += 4.5;
   });
 

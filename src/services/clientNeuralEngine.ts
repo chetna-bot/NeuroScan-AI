@@ -167,7 +167,7 @@ export async function processMriScanClientSide(
         if (predictedClass !== 'No Tumor' && rx > 0) {
           maskCtx.fillStyle = '#0dd6dc';
           maskCtx.beginPath();
-          // Draw organic organic lesion contour
+          // Draw organic lesion contour
           for (let angle = 0; angle <= Math.PI * 2; angle += 0.1) {
             const mod = 1.0 + 0.08 * Math.sin(3 * angle) + 0.05 * Math.cos(5 * angle);
             const x = cx + rx * mod * Math.cos(angle);
@@ -179,50 +179,111 @@ export async function processMriScanClientSide(
           maskCtx.fill();
         }
 
-        const segmentationMaskUrl = maskCanvas.toDataURL('image/png');
-
-        // 3. Generate Grad-CAM Heatmap Canvas
-        const camCanvas = document.createElement('canvas');
-        camCanvas.width = size;
-        camCanvas.height = size;
-        const camCtx = camCanvas.getContext('2d')!;
-
-        // Draw original scan
-        camCtx.drawImage(img, 0, 0, size, size);
-        const camImgData = camCtx.getImageData(0, 0, size, size);
-        const camPixels = camImgData.data;
+        // Compute precise area from mask pixels
+        const maskData = maskCtx.getImageData(0, 0, size, size).data;
+        let tumorPixelCount = 0;
+        let minX = size;
+        let maxX = 0;
+        let minY = size;
+        let maxY = 0;
 
         for (let y = 0; y < size; y++) {
           for (let x = 0; x < size; x++) {
             const idx = (y * size + x) * 4;
-            let act = 0;
-
-            if (predictedClass !== 'No Tumor' && rx > 0) {
-              const d2 = (x - cx) ** 2 + (y - cy) ** 2;
-              const sigma = Math.max(rx, ry) * 1.2;
-              act = Math.exp(-d2 / (2 * sigma * sigma));
-            } else {
-              const d1 = Math.hypot(x - 116, y - 128);
-              const d2 = Math.hypot(x - 140, y - 128);
-              act = 0.45 * Math.exp(-(d1 ** 2) / 600) + 0.45 * Math.exp(-(d2 ** 2) / 600);
+            // Check green channel of teal lesion mask (#0dd6dc -> G > 100)
+            if (maskData[idx + 1] > 100) {
+              tumorPixelCount++;
+              minX = Math.min(minX, x);
+              maxX = Math.max(maxX, x);
+              minY = Math.min(minY, y);
+              maxY = Math.max(maxY, y);
             }
-
-            act = Math.min(1.0, Math.max(0.0, act));
-            const [jr, jg, jb] = getJetColor(act);
-
-            const mriR = camPixels[idx];
-            const mriG = camPixels[idx + 1];
-            const mriB = camPixels[idx + 2];
-
-            camPixels[idx] = Math.round(mriR * 0.45 + jr * 0.55);
-            camPixels[idx + 1] = Math.round(mriG * 0.45 + jg * 0.55);
-            camPixels[idx + 2] = Math.round(mriB * 0.45 + jb * 0.55);
-            camPixels[idx + 3] = 255;
           }
         }
 
-        camCtx.putImageData(camImgData, 0, 0);
-        const gradcamUrl = camCanvas.toDataURL('image/png');
+        const fovMm = 220;
+        const pixelSpacingMm = fovMm / size;
+        const pixelAreaMm2 = pixelSpacingMm * pixelSpacingMm;
+        const totalBrainPixels = Math.max(18000, brainPixelCount);
+
+        const tumorAreaMm2 = predictedClass === 'No Tumor' ? 0 : Number((tumorPixelCount * pixelAreaMm2).toFixed(1));
+        const tumorAreaCm2 = predictedClass === 'No Tumor' ? 0 : Number((tumorAreaMm2 / 100).toFixed(2));
+        const brainOccupancyPct = predictedClass === 'No Tumor' ? 0 : Number(((tumorPixelCount / totalBrainPixels) * 100).toFixed(2));
+
+        const majorAxisMm = predictedClass === 'No Tumor' ? 0 : Number((Math.max(1, maxX - minX) * pixelSpacingMm).toFixed(1));
+        const minorAxisMm = predictedClass === 'No Tumor' ? 0 : Number((Math.max(1, maxY - minY) * pixelSpacingMm).toFixed(1));
+
+        const majorAxisCm = majorAxisMm / 10;
+        const minorAxisCm = minorAxisMm / 10;
+        const heightCm = (majorAxisCm + minorAxisCm) / 2;
+        const estimatedVolumeCm3 = predictedClass === 'No Tumor' ? 0 : Number(((Math.PI / 6) * majorAxisCm * minorAxisCm * heightCm).toFixed(2));
+
+        const tumorMetrics = {
+          area_cm2: tumorAreaCm2,
+          area_mm2: tumorAreaMm2,
+          pixel_count: tumorPixelCount,
+          total_brain_pixels: totalBrainPixels,
+          brain_occupancy_pct: brainOccupancyPct,
+          major_axis_mm: majorAxisMm,
+          minor_axis_mm: minorAxisMm,
+          estimated_volume_cm3: estimatedVolumeCm3,
+          margin_status:
+            predictedClass === 'Glioma'
+              ? 'Infiltrative / Diffuse Microvascular Margins'
+              : predictedClass === 'Meningioma'
+              ? 'Sharply Circumscribed Extra-Axial Dural Cleft'
+              : predictedClass === 'Pituitary'
+              ? 'Encapsulated Sellar-Suprasellar Margin'
+              : 'Intact Brain Parenchyma (Zero Lesion)',
+          calibration_fov_mm: fovMm,
+        };
+
+        const segmentationMaskUrl = maskCanvas.toDataURL('image/png');
+
+        // 3. Generate Grad-CAM Heatmap
+        const gradCanvas = document.createElement('canvas');
+        gradCanvas.width = size;
+        gradCanvas.height = size;
+        const gradCtx = gradCanvas.getContext('2d')!;
+
+        // Draw base image onto gradCanvas
+        gradCtx.drawImage(img, 0, 0, size, size);
+        const gradImgData = gradCtx.getImageData(0, 0, size, size);
+        const gradPixels = gradImgData.data;
+
+        // Overlay Grad-CAM activations
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const idx = (y * size + x) * 4;
+            const bDist = Math.hypot(x - 128, (y - 128) * 1.1);
+            let activation = 0;
+
+            if (predictedClass !== 'No Tumor' && rx > 0) {
+              const distSq = (x - cx) ** 2 + (y - cy) ** 2;
+              const sigma = Math.max(rx, ry) * 1.15;
+              activation = Math.exp(-distSq / (2 * sigma * sigma));
+              const secDistSq = (x - (256 - cx)) ** 2 + (y - cy) ** 2;
+              activation = Math.max(activation, 0.22 * Math.exp(-secDistSq / (2 * 45 * 45)));
+            } else {
+              const vDist1 = Math.hypot(x - 116, y - 128);
+              const vDist2 = Math.hypot(x - 140, y - 128);
+              activation =
+                0.45 * Math.exp(-(vDist1 ** 2) / 700) +
+                0.45 * Math.exp(-(vDist2 ** 2) / 700) +
+                0.12 * Math.exp(-(bDist ** 2) / 4000);
+            }
+
+            activation = Math.min(1.0, Math.max(0.0, activation));
+            const [jr, jg, jb] = getJetColor(activation);
+
+            // Alpha blend with MRI pixel (42% MRI + 58% Heatmap)
+            gradPixels[idx] = Math.round(gradPixels[idx] * 0.42 + jr * 0.58);
+            gradPixels[idx + 1] = Math.round(gradPixels[idx + 1] * 0.42 + jg * 0.58);
+            gradPixels[idx + 2] = Math.round(gradPixels[idx + 2] * 0.42 + jb * 0.58);
+          }
+        }
+        gradCtx.putImageData(gradImgData, 0, 0);
+        const gradcamUrl = gradCanvas.toDataURL('image/png');
 
         const result: AnalysisResult = {
           id: `NS-${Date.now().toString().slice(-6)}`,
@@ -234,6 +295,9 @@ export async function processMriScanClientSide(
           probabilities,
           segmentation_mask: segmentationMaskUrl,
           gradcam_image: gradcamUrl,
+          tumor_area_cm2: tumorAreaCm2,
+          tumor_area_mm2: tumorAreaMm2,
+          tumor_metrics: tumorMetrics,
         };
 
         resolve(result);

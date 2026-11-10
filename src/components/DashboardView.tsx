@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ActiveTab, AnalysisResult } from '../types/analysis';
+import { ActiveTab, AnalysisResult, getTumorMetrics } from '../types/analysis';
 import {
   Upload,
   Activity,
@@ -281,46 +281,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <th className="px-6 py-3">Timestamp</th>
                   <th className="px-6 py-3">Source File</th>
                   <th className="px-6 py-3">Classification</th>
+                  <th className="px-6 py-3">Tumor Area</th>
                   <th className="px-6 py-3 text-right">Confidence</th>
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {analyses.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-6 py-3.5 font-mono text-slate-900 font-medium">
-                      {item.id}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-500 font-mono">
-                      {new Date(item.timestamp).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-900 max-w-[200px] truncate">
-                      {item.filename}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span className="font-medium text-slate-900">
-                        {item.predicted_class}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-right font-mono font-medium text-slate-900 tabular-nums">
-                      {(item.confidence * 100).toFixed(1)}%
-                    </td>
-                    <td className="px-6 py-3.5 text-right flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => {
-                          onSelectResult(item);
-                          onTabChange('results');
-                        }}
-                        className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 font-medium"
-                      >
-                        <span>View Results</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                {analyses.map((item) => {
+                  const tm = getTumorMetrics(item);
+                  const isLesion = String(item.predicted_class).toLowerCase() !== 'no tumor';
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-6 py-3.5 font-mono text-slate-900 font-medium">
+                        {item.id}
+                      </td>
+                      <td className="px-6 py-3.5 text-slate-500 font-mono">
+                        {new Date(item.timestamp).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-6 py-3.5 text-slate-900 max-w-[200px] truncate">
+                        {item.filename}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="font-medium text-slate-900">
+                          {item.predicted_class}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 font-mono text-xs">
+                        {isLesion ? (
+                          <span className="text-rose-700 font-semibold">
+                            {tm.area_cm2.toFixed(2)} cm²{' '}
+                            <span className="text-slate-400 font-normal text-[10px]">({tm.area_mm2.toLocaleString()} mm²)</span>
+                          </span>
+                        ) : (
+                          <span className="text-emerald-700 font-normal">
+                            0.00 cm² (Intact)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 text-right font-mono font-medium text-slate-900 tabular-nums">
+                        {(item.confidence * 100).toFixed(1)}%
+                      </td>
+                      <td className="px-6 py-3.5 text-right flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            onSelectResult(item);
+                            onTabChange('results');
+                          }}
+                          className="inline-flex items-center gap-1 text-teal-700 hover:text-teal-800 font-medium"
+                        >
+                          <span>View Results</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
                       {onDeleteAnalysis && (
                         <button
                           onClick={() => onDeleteAnalysis(item.id)}
@@ -332,7 +348,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       )}
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

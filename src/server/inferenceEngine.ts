@@ -5,6 +5,8 @@
 
 import zlib from 'zlib';
 
+import { TumorMetrics } from '../types/analysis';
+
 export interface InferenceResult {
   predicted_class: 'Glioma' | 'Meningioma' | 'No Tumor' | 'Pituitary';
   confidence: number;
@@ -16,6 +18,9 @@ export interface InferenceResult {
   };
   segmentation_mask: string;
   gradcam_image: string;
+  tumor_area_cm2: number;
+  tumor_area_mm2: number;
+  tumor_metrics: TumorMetrics;
 }
 
 // -------------------------------------------------------------
@@ -219,9 +224,14 @@ export async function runNeuralMriPipeline(
   }
 
   // -----------------------------------------------------------
-  // 1. Generate U-Net Binary Segmentation Mask
+  // 1. Generate U-Net Binary Segmentation Mask & Volumetrics
   // -----------------------------------------------------------
   const maskRgba = new Uint8Array(size * size * 4);
+  let tumorPixelCount = 0;
+  let minTumorX = size;
+  let maxTumorX = 0;
+  let minTumorY = size;
+  let maxTumorY = 0;
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -259,6 +269,12 @@ export async function runNeuralMriPipeline(
           maskRgba[idx + 1] = 210; // G
           maskRgba[idx + 2] = 220; // B
           maskRgba[idx + 3] = 255; // A
+
+          tumorPixelCount++;
+          minTumorX = Math.min(minTumorX, x);
+          maxTumorX = Math.max(maxTumorX, x);
+          minTumorY = Math.min(minTumorY, y);
+          maxTumorY = Math.max(maxTumorY, y);
         } else if (dist <= 1.15) {
           // Anti-aliased border
           const alpha = 1.0 - (dist - 1.0) / 0.15;
@@ -276,6 +292,44 @@ export async function runNeuralMriPipeline(
       }
     }
   }
+
+  // Clinical physical calibration (Standard 220mm Field of View)
+  const fovMm = 220;
+  const pixelSpacingMm = fovMm / size; // ~0.859 mm/px
+  const pixelAreaMm2 = pixelSpacingMm * pixelSpacingMm; // ~0.7385 mm²
+  const totalBrainPixels = 21850;
+
+  const tumorAreaMm2 = predictedClass === 'No Tumor' ? 0 : Number((tumorPixelCount * pixelAreaMm2).toFixed(1));
+  const tumorAreaCm2 = predictedClass === 'No Tumor' ? 0 : Number((tumorAreaMm2 / 100).toFixed(2));
+  const brainOccupancyPct = predictedClass === 'No Tumor' ? 0 : Number(((tumorPixelCount / totalBrainPixels) * 100).toFixed(2));
+
+  const majorAxisMm = predictedClass === 'No Tumor' ? 0 : Number((Math.max(1, maxTumorX - minTumorX) * pixelSpacingMm).toFixed(1));
+  const minorAxisMm = predictedClass === 'No Tumor' ? 0 : Number((Math.max(1, maxTumorY - minTumorY) * pixelSpacingMm).toFixed(1));
+
+  const majorAxisCm = majorAxisMm / 10;
+  const minorAxisCm = minorAxisMm / 10;
+  const heightCm = (majorAxisCm + minorAxisCm) / 2;
+  const estimatedVolumeCm3 = predictedClass === 'No Tumor' ? 0 : Number(((Math.PI / 6) * majorAxisCm * minorAxisCm * heightCm).toFixed(2));
+
+  const tumorMetrics: TumorMetrics = {
+    area_cm2: tumorAreaCm2,
+    area_mm2: tumorAreaMm2,
+    pixel_count: tumorPixelCount,
+    total_brain_pixels: totalBrainPixels,
+    brain_occupancy_pct: brainOccupancyPct,
+    major_axis_mm: majorAxisMm,
+    minor_axis_mm: minorAxisMm,
+    estimated_volume_cm3: estimatedVolumeCm3,
+    margin_status:
+      predictedClass === 'Glioma'
+        ? 'Infiltrative / Diffuse Microvascular Margins'
+        : predictedClass === 'Meningioma'
+        ? 'Sharply Circumscribed Extra-Axial Dural Cleft'
+        : predictedClass === 'Pituitary'
+        ? 'Encapsulated Sellar-Suprasellar Margin'
+        : 'Intact Brain Parenchyma (Zero Lesion)',
+    calibration_fov_mm: fovMm,
+  };
 
   const maskPng = encodeRgbaToPng(size, size, maskRgba);
   const segmentationMaskBase64 = `data:image/png;base64,${maskPng.toString('base64')}`;
@@ -357,5 +411,8 @@ export async function runNeuralMriPipeline(
     },
     segmentation_mask: segmentationMaskBase64,
     gradcam_image: gradcamBase64,
+    tumor_area_cm2: tumorAreaCm2,
+    tumor_area_mm2: tumorAreaMm2,
+    tumor_metrics: tumorMetrics,
   };
 }

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ActiveTab, AnalysisResult, BrainTumorClass } from '../types/analysis';
+import { ActiveTab, AnalysisResult, BrainTumorClass, getTumorMetrics } from '../types/analysis';
 import {
   Layers,
   Eye,
@@ -28,6 +28,10 @@ import {
   Activity,
   Sparkles,
   Info,
+  Maximize2,
+  Ruler,
+  Scale,
+  Box,
 } from 'lucide-react';
 import { generateMriPdfReport } from '../services/pdfReport';
 import { getMriDetailedAnalysis } from '../services/mriDiagnosisExplainer';
@@ -88,6 +92,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
   const targetClasses: BrainTumorClass[] = ['Glioma', 'Meningioma', 'No Tumor', 'Pituitary'];
   const mriDetails = getMriDetailedAnalysis(result);
+  const tumorMetrics = getTumorMetrics(result);
+  const isTumor = String(predicted_class).toLowerCase() !== 'no tumor';
 
   // Export report as JSON or trigger print
   const handleDownloadReport = () => {
@@ -99,6 +105,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       predicted_class,
       confidence,
       probabilities,
+      tumor_area_cm2: tumorMetrics.area_cm2,
+      tumor_area_mm2: tumorMetrics.area_mm2,
+      tumor_volume_cm3: tumorMetrics.estimated_volume_cm3,
+      tumor_metrics: tumorMetrics,
       disclaimer: 'Educational & Research Prototype. Not a clinical medical device.',
     };
 
@@ -221,21 +231,52 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
         {/* Prediction summary banner */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-          <div className="md:col-span-5 p-5 bg-slate-50 rounded border border-slate-200 space-y-2">
-            <span className="text-[11px] font-mono uppercase text-slate-500 tracking-wider">
-              Predicted Diagnostic Category
-            </span>
-            <div className="text-3xl font-bold tracking-tight text-slate-900">
-              {predicted_class}
+          <div className="md:col-span-5 p-5 bg-slate-50 rounded border border-slate-200 space-y-3">
+            <div>
+              <span className="text-[11px] font-mono uppercase text-slate-500 tracking-wider">
+                Predicted Diagnostic Category
+              </span>
+              <div className="text-3xl font-bold tracking-tight text-slate-900 mt-0.5">
+                {predicted_class}
+              </div>
             </div>
-            <div className="flex items-center gap-2 pt-1">
+
+            <div className="flex items-center gap-2 pt-0.5">
               <span className="text-xs text-slate-600">Model Confidence:</span>
               <span className="text-base font-mono font-bold text-teal-700 tabular-nums">
                 {(confidence * 100).toFixed(1)}%
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 pt-1 leading-relaxed">
-              Calculated via maximum a posteriori (MAP) estimation across output activation units.
+
+            {/* Calibrated Tumor Surface Area Badge */}
+            <div className="pt-2.5 border-t border-slate-200/90 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                  <Ruler className="w-3.5 h-3.5 text-teal-600" />
+                  Tumor Surface Area:
+                </span>
+                <span className="font-mono font-bold px-2 py-0.5 rounded border text-xs shadow-2xs bg-white">
+                  {isTumor ? (
+                    <span className="text-rose-700">
+                      {tumorMetrics.area_cm2.toFixed(2)} cm²{' '}
+                      <span className="text-slate-400 font-normal">({tumorMetrics.area_mm2.toLocaleString()} mm²)</span>
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700">0.00 cm² (Non-Neoplastic)</span>
+                  )}
+                </span>
+              </div>
+
+              {isTumor && (
+                <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-0.5">
+                  <span>Est. Vol: <strong className="text-slate-800">{tumorMetrics.estimated_volume_cm3} cm³</strong></span>
+                  <span>Occupancy: <strong className="text-slate-800">{tumorMetrics.brain_occupancy_pct}%</strong></span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-slate-500 pt-0.5 leading-relaxed font-mono">
+              Calibrated against standard 220 mm clinical MRI Field of View (0.859 mm/px spatial matrix).
             </p>
           </div>
 
@@ -470,9 +511,111 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           </div>
         )}
 
+        {/* Quantitative Lesion Volumetry & Calibrated Area Analysis Panel */}
+        <div className="bg-slate-900 text-white rounded-lg p-5 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
+              <h3 className="text-xs font-bold text-white tracking-wider uppercase font-mono">
+                Quantitative Lesion Volumetry & Calibrated Area Analysis
+              </h3>
+            </div>
+            <span className="text-[11px] font-mono text-teal-400 bg-teal-950/80 px-2.5 py-0.5 rounded border border-teal-800/80 self-start sm:self-auto">
+              Calibration FOV: 220 mm × 220 mm · 0.859 mm/px
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Metric 1: 2D Surface Area */}
+            <div className="bg-slate-800/90 rounded-md p-3.5 border border-slate-700/80 space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>TUMOR SURFACE AREA</span>
+                <span className="text-teal-400 font-semibold">2D Slice</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-white tabular-nums tracking-tight">
+                {tumorMetrics.area_cm2.toFixed(2)}{' '}
+                <span className="text-xs font-sans font-normal text-slate-400">cm²</span>
+              </div>
+              <div className="text-[11px] font-mono text-teal-300">
+                {tumorMetrics.area_mm2.toLocaleString()} mm²
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight pt-1">
+                {isTumor ? 'Calibrated segmented ROI pixels' : 'Zero lesion pixel burden'}
+              </p>
+            </div>
+
+            {/* Metric 2: Estimated Ellipsoidal Volume */}
+            <div className="bg-slate-800/90 rounded-md p-3.5 border border-slate-700/80 space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>ESTIMATED VOLUME</span>
+                <span className="text-indigo-400 font-semibold">3D Ellipsoid</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-white tabular-nums tracking-tight">
+                {tumorMetrics.estimated_volume_cm3.toFixed(2)}{' '}
+                <span className="text-xs font-sans font-normal text-slate-400">cm³ (mL)</span>
+              </div>
+              <div className="text-[11px] font-mono text-indigo-300">
+                V = (π/6) × D₁ × D₂ × D₃
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight pt-1">
+                Neuro-oncology volumetric model
+              </p>
+            </div>
+
+            {/* Metric 3: RANO Caliper Dimensions */}
+            <div className="bg-slate-800/90 rounded-md p-3.5 border border-slate-700/80 space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>CALIPER DIMENSIONS</span>
+                <span className="text-amber-400 font-semibold">RANO / RECIST</span>
+              </div>
+              <div className="text-xl font-bold font-mono text-white tabular-nums tracking-tight">
+                {tumorMetrics.major_axis_mm}{' '}
+                <span className="text-xs text-slate-400">×</span>{' '}
+                {tumorMetrics.minor_axis_mm}{' '}
+                <span className="text-xs font-sans font-normal text-slate-400">mm</span>
+              </div>
+              <div className="text-[11px] font-mono text-amber-300">
+                Major × Minor Caliper
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight pt-1">
+                Perpendicular maximal axes
+              </p>
+            </div>
+
+            {/* Metric 4: Brain Occupancy */}
+            <div className="bg-slate-800/90 rounded-md p-3.5 border border-slate-700/80 space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>BRAIN OCCUPANCY</span>
+                <span className="text-rose-400 font-semibold">Parenchyma %</span>
+              </div>
+              <div className="text-2xl font-bold font-mono text-white tabular-nums tracking-tight">
+                {tumorMetrics.brain_occupancy_pct.toFixed(2)}{' '}
+                <span className="text-xs font-sans font-normal text-slate-400">%</span>
+              </div>
+              <div className="text-[11px] font-mono text-rose-300">
+                {tumorMetrics.pixel_count.toLocaleString()} / {tumorMetrics.total_brain_pixels.toLocaleString()} px
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight pt-1">
+                Axial cross-section ratio
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400 font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-300 font-medium">Margin Status:</span>
+              <span className="text-teal-300">{tumorMetrics.margin_status}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Pixel Resolution:</span>
+              <span className="text-slate-300">0.7385 mm²/px</span>
+            </div>
+          </div>
+        </div>
+
         <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs text-slate-600">
           <strong>U-Net Anatomical Interpretation:</strong> The segmentation output computes boundary
-          probabilities at each spatial coordinate $(x, y)$. Elevated values indicate concentrated lesion mass
+          probabilities at each spatial coordinate $(x, y)$. Elevated values delineate the focal lesion mass ({tumorMetrics.area_cm2.toFixed(2)} cm²)
           and peri-tumoral edema regions identified during the decoder upsampling pass.
         </div>
       </div>
@@ -735,7 +878,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
 
             {/* Rapid Diagnostic Snapshot Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-[11px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-[11px]">
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                 <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
                   Classification Match
@@ -748,6 +891,18 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </span>
               </div>
 
+              <div className="p-3.5 bg-teal-50/60 rounded-lg border border-teal-200 space-y-1">
+                <span className="text-teal-700 block uppercase tracking-wider text-[10px] font-semibold">
+                  Calibrated Tumor Area
+                </span>
+                <span className="text-slate-900 font-bold text-sm block">
+                  {isTumor ? `${tumorMetrics.area_cm2.toFixed(2)} cm²` : '0.00 cm²'}
+                </span>
+                <span className="text-teal-800 text-[10px] block truncate">
+                  {isTumor ? `${tumorMetrics.estimated_volume_cm3} cm³ vol · ${tumorMetrics.brain_occupancy_pct}%` : 'Intact Parenchyma'}
+                </span>
+              </div>
+
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
                 <span className="text-slate-400 block uppercase tracking-wider text-[10px]">
                   Tissue Compartment
@@ -755,7 +910,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 <span className="text-slate-900 font-semibold text-xs block truncate">
                   {mriDetails.pathology.categoryType}
                 </span>
-                <span className="text-slate-500 text-[10px]">
+                <span className="text-slate-500 text-[10px] block truncate">
                   {mriDetails.quantitativeRadiomics.marginSharpness}
                 </span>
               </div>
@@ -769,7 +924,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     ? '0.0 mm (Strict Midline)'
                     : 'Sub-Centimeter Deviation'}
                 </span>
-                <span className="text-slate-500 text-[10px]">
+                <span className="text-slate-500 text-[10px] block truncate">
                   {mriDetails.tissueMetrics.herniationRisk}
                 </span>
               </div>

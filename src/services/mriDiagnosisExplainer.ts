@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AnalysisResult } from '../types/analysis';
+import { AnalysisResult, getTumorMetrics, TumorMetrics } from '../types/analysis';
 
 export interface DifferentialItem {
   condition: string;
@@ -55,6 +55,7 @@ export interface MriDetailedAnalysis {
   imageOrientation: string;
   anatomicalLandmarks: string[];
   sequenceMatrix: SequenceFinding[];
+  tumorMetrics: TumorMetrics;
   tissueMetrics: {
     parenchymalIntegrity: string;
     ventricularSymmetry: string;
@@ -68,6 +69,10 @@ export interface MriDetailedAnalysis {
     confidencePct: string;
     secondaryClass: string;
     secondaryPct: string;
+    tumorAreaDisplay: string;
+    tumorVolumeDisplay: string;
+    dimensionsDisplay: string;
+    occupancyDisplay: string;
     marginSharpness: string;
     riskStratification: string;
     whoGradeClassification: string;
@@ -575,9 +580,13 @@ export function getMriDetailedAnalysis(result: AnalysisResult): MriDetailedAnaly
       ? `This MRI scan was classified with ${confPct}% confidence as a Pituitary Sellar Neoplasm (PitNET). Located in the sella turcica at the skull base beneath the optic chiasm, pituitary tumors are almost always benign. They are categorized either by hormone hypersecretion (functioning adenomas) or by their compressive mass effect on vision (non-functioning macroadenomas causing bitemporal peripheral visual loss). Treatment typically involves specialized endocrine evaluation, medication (such as dopamine agonists for prolactinomas), or minimally invasive endoscopic transsphenoidal surgery.`
       : `This MRI scan was classified with ${confPct}% confidence as Normal Brain Anatomy (No Tumor Detected). The cerebral cortex, white matter tracts, deep basal ganglia, and ventricular cavities show intact structural symmetry, preserved gray-white differentiation, and strict midline alignment with 0.0 mm of shift. There is no evidence of a space-occupying neoplasm, abnormal mass effect, or vasogenic edema. Any clinical symptoms (such as headaches) should be correlated clinically with non-neoplastic primary conditions.`;
 
+  const metrics = getTumorMetrics(result);
+
   return {
     pathology,
-    plainExplanation,
+    plainExplanation: isTumor
+      ? `${plainExplanation} Quantitative lesion volumetry computed a 2D cross-sectional surface area of ${metrics.area_cm2} cm² (${metrics.area_mm2} mm²) with an estimated 3D ellipsoidal equivalent volume of ${metrics.estimated_volume_cm3} cm³ (cerebral occupancy: ${metrics.brain_occupancy_pct}%).`
+      : `${plainExplanation} Zero lesion area detected (0.00 cm² / 0.0 mm²), confirming negative cross-sectional neoplastic burden.`,
     imageOrientation: 'Axial (Horizontal Plane) Transverse Slice',
     anatomicalLandmarks: [
       'Bilateral Cerebral Hemispheres (Frontal, Parietal, Temporal, Occipital cortices)',
@@ -588,9 +597,10 @@ export function getMriDetailedAnalysis(result: AnalysisResult): MriDetailedAnaly
       'Posterior Fossa Compartment (Cerebellar folia and fourth ventricular outflow where visible)',
     ],
     sequenceMatrix,
+    tumorMetrics: metrics,
     tissueMetrics: {
       parenchymalIntegrity: isTumor
-        ? 'Focal parenchymal signal heterogeneity observed within the suspected quadrant, consistent with space-occupying cellular proliferation.'
+        ? `Focal parenchymal signal heterogeneity observed within the suspected quadrant, consistent with space-occupying cellular proliferation measuring ${metrics.area_cm2} cm².`
         : 'Preserved gray-white matter differentiation throughout bilateral cerebral convexities; pristine parenchymal signal continuity.',
       ventricularSymmetry: isTumor
         ? 'Contralateral ventricular cavity remains patent; ipsilateral lateral ventricle exhibits subtle compression or sulcal effacement adjacent to mass lesion.'
@@ -599,7 +609,7 @@ export function getMriDetailedAnalysis(result: AnalysisResult): MriDetailedAnaly
         ? 'Midline vector demonstrates localized lateralized vector; clinical monitoring recommended to assess shift against the 5.0 mm intracranial pressure threshold.'
         : 'Strict anatomic midline alignment of the falx cerebri and third ventricle; zero midline shift detected (0.0 mm displacement).',
       edemaAssessment: isTumor
-        ? 'U-Net segmentation maps localized peri-lesional border correlating with altered cellular water diffusivity and vasogenic microenvironment.'
+        ? `U-Net segmentation maps localized peri-lesional border (${metrics.area_mm2} mm²) correlating with altered cellular water diffusivity and vasogenic microenvironment.`
         : 'Zero vasogenic or cytotoxic edema observed; fluid-attenuated inversion recovery confirms healthy, uncompromised periventricular white matter.',
       saliencyFocus: isTumor
         ? 'Grad-CAM backpropagation focuses high-intensity activation gradients directly over the primary pathological mass contour.'
@@ -613,6 +623,10 @@ export function getMriDetailedAnalysis(result: AnalysisResult): MriDetailedAnaly
       confidencePct: `${confPct}%`,
       secondaryClass: secondary[0],
       secondaryPct: `${(secondary[1] * 100).toFixed(2)}%`,
+      tumorAreaDisplay: isTumor ? `${metrics.area_cm2} cm² (${metrics.area_mm2} mm²)` : '0.00 cm² (Negative)',
+      tumorVolumeDisplay: isTumor ? `${metrics.estimated_volume_cm3} cm³ (mL)` : '0.00 cm³',
+      dimensionsDisplay: isTumor ? `${metrics.major_axis_mm} mm × ${metrics.minor_axis_mm} mm` : '0.0 mm × 0.0 mm',
+      occupancyDisplay: isTumor ? `${metrics.brain_occupancy_pct}% of slice` : '0.00%',
       marginSharpness:
         normalizedClass === 'Meningioma'
           ? 'Sharply Circumscribed / Well-Defined Extra-Axial Dural Cleft'
